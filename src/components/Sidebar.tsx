@@ -1,12 +1,17 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, Building2, Users, Laptop } from "lucide-react";
+import { LayoutDashboard, Building2, Users, Laptop, Settings, Network } from "lucide-react";
 
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/org", label: "Org Structure", icon: Building2 },
   { to: "/employees", label: "Employees", icon: Users },
   { to: "/assets", label: "Hardware Assets", icon: Laptop },
+];
+
+const ADMIN_NAV = [
+  { to: "/admin/companies", label: "Companies", icon: Building2 },
+  { to: "/admin/org-units", label: "Org Units", icon: Network },
 ];
 
 export default function Sidebar() {
@@ -40,6 +45,29 @@ export default function Sidebar() {
             </NavLink>
           );
         })}
+
+        <div className="pt-4 mt-4 border-t border-white/10">
+          <div className="px-3 pb-1 text-[11px] uppercase tracking-wide text-white/30 flex items-center gap-1.5">
+            <Settings size={11} /> System Admin
+          </div>
+          {ADMIN_NAV.map((item) => {
+            const Icon = item.icon;
+            return (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) =>
+                  `w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
+                    isActive ? "bg-accent/10 text-accent" : "text-white/60 hover:text-white/80"
+                  }`
+                }
+              >
+                <Icon size={16} />
+                {item.label}
+              </NavLink>
+            );
+          })}
+        </div>
       </nav>
       <div className="px-4 py-4 border-t border-white/10 text-[11px] text-white/30">
         ITAMS v0.1 · Karawa Group

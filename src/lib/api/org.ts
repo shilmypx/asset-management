@@ -82,6 +82,15 @@ export async function createCompany(input: Pick<CompanyRow, "name" | "code" | "i
   return data as CompanyRow;
 }
 
+export async function createOrgUnit(input: Omit<OrgUnitRow, "id">) {
+  if (!isSupabaseConfigured) {
+    throw new Error("Connect a Supabase project (see .env.example) before writing data.");
+  }
+  const { data, error } = await supabase.from("org_units").insert(input).select().single();
+  if (error) throw error;
+  return data as OrgUnitRow;
+}
+
 export async function updateOrgUnit(id: string, changes: Partial<OrgUnitRow>) {
   if (!isSupabaseConfigured) {
     throw new Error("Connect a Supabase project (see .env.example) before writing data.");
@@ -89,4 +98,8 @@ export async function updateOrgUnit(id: string, changes: Partial<OrgUnitRow>) {
   const { data, error } = await supabase.from("org_units").update(changes).eq("id", id).select().single();
   if (error) throw error;
   return data as OrgUnitRow;
+}
+
+export async function deactivateOrgUnit(id: string) {
+  return updateOrgUnit(id, { status: "inactive" });
 }

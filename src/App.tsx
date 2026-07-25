@@ -6,12 +6,16 @@ import Dashboard from "./pages/Dashboard";
 import OrgStructure from "./pages/OrgStructure";
 import Employees from "./pages/Employees";
 import Assets from "./pages/Assets";
+import CompaniesAdmin from "./pages/admin/Companies";
+import OrgUnitsAdmin from "./pages/admin/OrgUnits";
 
 const TITLES: Record<string, string> = {
   "/": "Dashboard",
   "/org": "Org Structure",
   "/employees": "Employees",
   "/assets": "Hardware Assets",
+  "/admin/companies": "Admin · Companies",
+  "/admin/org-units": "Admin · Org Units",
 };
 
 export default function App() {
@@ -37,6 +41,8 @@ export default function App() {
           <Route path="/org" element={<OrgStructure />} />
           <Route path="/employees" element={<Employees company={company} search={search} />} />
           <Route path="/assets" element={<Assets company={company} search={search} />} />
+          <Route path="/admin/companies" element={<CompaniesAdmin />} />
+          <Route path="/admin/org-units" element={<OrgUnitsAdmin />} />
         </Routes>
       </div>
     </div>

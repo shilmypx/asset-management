@@ -34,6 +34,6 @@ Opens at `http://localhost:5173` running against in-memory mock data. Fine for b
 
 ## Status
 
-- **Live-data-ready:** Org Structure, Employees, Hardware Assets — all read from Supabase when configured (`db/views.sql` adds two views, `v_employees` and `v_assets`, that resolve joins/polymorphic ownership so the frontend queries one row per record), falling back to mock data otherwise. `src/lib/api/` is the pattern every remaining module follows.
-- **Dashboard** — still mock-only; next in line to wire up (aggregation queries against `v_assets`).
-- **Not yet built:** Check-Out/Check-In, Procurement, Self-Service, Incidents, Repair, Contracts, Reports, Admin CRUD forms (Master Data, RBAC, Depreciation Settings, etc.), and all *write* operations (the app is read-only against live data so far — `createCompany`/`updateOrgUnit` exist in `src/lib/api/org.ts` as the pattern, but nothing in the UI calls them yet). Schema for all of it exists in `db/schema.sql`.
+- **Live-data-ready:** Org Structure, Employees, Hardware Assets, Dashboard (KPIs/charts aggregate client-side from `v_assets`) — all read from Supabase when configured, fall back to mock data otherwise.
+- **Admin screens (new):** Companies and Org Units under System Admin in the sidebar — full add/edit forms, not just read-only lists. These are the first screens with real *write* operations wired up (disabled in demo mode with a tooltip explaining why, rather than silently failing).
+- **Not yet built:** RBAC (Users, Roles & Permission Matrix), Departments/Locations/Cost Centers/Master Data admin screens, Check-Out/Check-In, Procurement, Self-Service, Incidents, Repair, Contracts, Reports. Schema for all of it exists in `db/schema.sql`.
