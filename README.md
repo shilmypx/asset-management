@@ -34,6 +34,6 @@ Opens at `http://localhost:5173` running against in-memory mock data. Fine for b
 
 ## Status
 
-- **Live-data-ready:** Org Structure, Employees, Hardware Assets, Dashboard (KPIs/charts aggregate client-side from `v_assets`) — all read from Supabase when configured, fall back to mock data otherwise.
-- **Admin screens (new):** Companies and Org Units under System Admin in the sidebar — full add/edit forms, not just read-only lists. These are the first screens with real *write* operations wired up (disabled in demo mode with a tooltip explaining why, rather than silently failing).
-- **Not yet built:** RBAC (Users, Roles & Permission Matrix), Departments/Locations/Cost Centers/Master Data admin screens, Check-Out/Check-In, Procurement, Self-Service, Incidents, Repair, Contracts, Reports. Schema for all of it exists in `db/schema.sql`.
+- **Live-data-ready:** Org Structure, Employees, Hardware Assets, Dashboard — all read from Supabase when configured, fall back to mock data otherwise.
+- **Admin screens:** Companies, Org Units, Roles & Permissions — full add/edit under System Admin in the sidebar. `db/schema.sql` now seeds the `permissions` table (module × action grid) since roles need something to reference.
+- **Not yet built:** Users screen (create user, assign roles, password reset), Departments/Locations/Cost Centers/Master Data admin, Check-Out/Check-In, Procurement, Self-Service, Incidents, Repair, Contracts, Reports. Schema for all of it exists in `db/schema.sql`.

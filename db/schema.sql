@@ -633,3 +633,13 @@ insert into departments (name, code, is_shared) values
   ('IT', 'IT', true),
   ('HR', 'HR', true),
   ('Finance', 'FIN', true);
+
+-- Permissions: module x action grid. Not every module supports every action
+-- (e.g. Dashboard has no "delete") — this seed matches the modules and
+-- actions listed in ITAMS-Screens-Fields-Functions.md section 4.3.
+insert into permissions (module, action)
+select m, a from
+  (values ('dashboard'), ('employees'), ('hardware_assets'), ('software_licenses'), ('incidents'), ('reports'), ('settings')) as modules(m)
+  cross join
+  (values ('view'), ('add'), ('edit'), ('delete'), ('approve'), ('export'), ('print'), ('import')) as actions(a)
+on conflict (module, action) do nothing;
