@@ -13,6 +13,7 @@ import UsersAdmin from "./pages/admin/Users";
 import MasterDataAdmin from "./pages/admin/MasterData";
 import OrgSettings from "./pages/admin/OrgSettings";
 import CheckOutCheckIn from "./pages/CheckOutCheckIn";
+import Procurement from "./pages/Procurement";
 
 const TITLES: Record<string, string> = {
   "/": "Dashboard",
@@ -20,6 +21,7 @@ const TITLES: Record<string, string> = {
   "/employees": "Employees",
   "/assets": "Hardware Assets",
   "/checkout": "Check-Out / Check-In",
+  "/procurement": "Procurement",
   "/admin/companies": "Admin · Companies",
   "/admin/org-units": "Admin · Org Units",
   "/admin/roles": "Admin · Roles & Permissions",
@@ -52,6 +54,7 @@ export default function App() {
           <Route path="/employees" element={<Employees company={company} search={search} />} />
           <Route path="/assets" element={<Assets company={company} search={search} />} />
           <Route path="/checkout" element={<CheckOutCheckIn />} />
+          <Route path="/procurement" element={<Procurement />} />
           <Route path="/admin/companies" element={<CompaniesAdmin />} />
           <Route path="/admin/org-units" element={<OrgUnitsAdmin />} />
           <Route path="/admin/roles" element={<RolesAdmin />} />
