@@ -1,12 +1,13 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, Building2, Users, Laptop, Settings, Network, ShieldCheck, UserCog } from "lucide-react";
+import { LayoutDashboard, Building2, Users, Laptop, Settings, Network, ShieldCheck, UserCog, ListTree, MapPin, ScanBarcode } from "lucide-react";
 
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/org", label: "Org Structure", icon: Building2 },
   { to: "/employees", label: "Employees", icon: Users },
   { to: "/assets", label: "Hardware Assets", icon: Laptop },
+  { to: "/checkout", label: "Check-Out / Check-In", icon: ScanBarcode },
 ];
 
 const ADMIN_NAV = [
@@ -14,6 +15,8 @@ const ADMIN_NAV = [
   { to: "/admin/org-units", label: "Org Units", icon: Network },
   { to: "/admin/roles", label: "Roles & Permissions", icon: ShieldCheck },
   { to: "/admin/users", label: "Users", icon: UserCog },
+  { to: "/admin/master-data", label: "Master Data", icon: ListTree },
+  { to: "/admin/org-settings", label: "Depts / Locations / Cost Centers", icon: MapPin },
 ];
 
 export default function Sidebar() {

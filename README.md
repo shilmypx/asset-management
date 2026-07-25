@@ -34,9 +34,10 @@ Opens at `http://localhost:5173` running against in-memory mock data. Fine for b
 
 ## Status
 
-**Phase 1 (System Admin, RBAC, Employees) complete:**
+**Phase 1 (System Admin, RBAC, Employees) and the start of Phase 2 complete:**
 - **Live-data-ready:** Org Structure, Employees, Hardware Assets, Dashboard
-- **Admin screens:** Companies, Org Units, Roles & Permission Matrix, Users (lock/unlock, role visibility, profile creation)
-- **Auth architecture note:** the `users` table is app-level data only (role links, employee link, lock status) — actual credentials live in Supabase's built-in `auth.users`, not in this table. `password_hash` exists in `db/schema.sql` for reference against the original SRS field list but the app never writes to it. Inviting a user still requires a manual step via the Supabase dashboard or an Edge Function with the service role key — that can't run from the browser with the anon key, so it's intentionally not automated here.
+- **Admin screens:** Companies, Org Units, Roles & Permission Matrix, Users, Master Data (Asset Categories/Manufacturers/Statuses/License Types/Subscription Types/Currencies/Employment Types/Vendors — one generic screen), Departments/Locations/Cost Centers (tabbed, company-scoped)
+- **Check-Out / Check-In** — real assignment flow: checking out sets the asset's owner + status and logs an `asset_assignments` row; checking in closes that row, records condition/remarks, and returns the asset to Available (or leaves it unassigned-but-flagged if condition is Damaged/Needs Repair, ready for a repair record next)
+- **Auth architecture note:** the `users` table is app-level data only (role links, employee link, lock status) — actual credentials live in Supabase's built-in `auth.users`, not in this table.
 
-**Not yet built (Phase 2+):** Departments/Locations/Cost Centers/Master Data admin, Check-Out/Check-In, Procurement, Self-Service, Software & SaaS Licenses, Incidents, Repair, Contracts, Reports. Schema for all of it exists in `db/schema.sql`.
+**Not yet built:** Procurement, Self-Service, Software & SaaS Licenses, Network Components, Repair & Maintenance, Contracts & Warranty, Incidents/Problems/Changes, Inventory Audit, Reports, Barcode printing, Automation Rules. Schema for all of it exists in `db/schema.sql`.
