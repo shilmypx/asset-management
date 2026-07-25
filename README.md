@@ -34,6 +34,9 @@ Opens at `http://localhost:5173` running against in-memory mock data. Fine for b
 
 ## Status
 
-- **Live-data-ready:** Org Structure, Employees, Hardware Assets, Dashboard — all read from Supabase when configured, fall back to mock data otherwise.
-- **Admin screens:** Companies, Org Units, Roles & Permissions — full add/edit under System Admin in the sidebar. `db/schema.sql` now seeds the `permissions` table (module × action grid) since roles need something to reference.
-- **Not yet built:** Users screen (create user, assign roles, password reset), Departments/Locations/Cost Centers/Master Data admin, Check-Out/Check-In, Procurement, Self-Service, Incidents, Repair, Contracts, Reports. Schema for all of it exists in `db/schema.sql`.
+**Phase 1 (System Admin, RBAC, Employees) complete:**
+- **Live-data-ready:** Org Structure, Employees, Hardware Assets, Dashboard
+- **Admin screens:** Companies, Org Units, Roles & Permission Matrix, Users (lock/unlock, role visibility, profile creation)
+- **Auth architecture note:** the `users` table is app-level data only (role links, employee link, lock status) — actual credentials live in Supabase's built-in `auth.users`, not in this table. `password_hash` exists in `db/schema.sql` for reference against the original SRS field list but the app never writes to it. Inviting a user still requires a manual step via the Supabase dashboard or an Edge Function with the service role key — that can't run from the browser with the anon key, so it's intentionally not automated here.
+
+**Not yet built (Phase 2+):** Departments/Locations/Cost Centers/Master Data admin, Check-Out/Check-In, Procurement, Self-Service, Software & SaaS Licenses, Incidents, Repair, Contracts, Reports. Schema for all of it exists in `db/schema.sql`.
