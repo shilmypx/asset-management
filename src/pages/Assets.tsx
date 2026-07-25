@@ -1,10 +1,12 @@
-import React, { useState } from "react";
-import { X, ChevronRight, Barcode, Package } from "lucide-react";
-import { ASSETS, Asset } from "../lib/mockData";
+import React, { useEffect, useState } from "react";
+import { X, ChevronRight, Barcode, Package, Database, CircleDot } from "lucide-react";
+import { Asset } from "../lib/mockData";
+import { fetchAssets } from "../lib/api/assets";
+import { isSupabaseConfigured } from "../lib/supabaseClient";
 import { StatusPill, Tag, Field } from "../components/Ui";
 
-function Detail({ asset, onClose, onOpenChild }: { asset: Asset; onClose: () => void; onOpenChild: (a: Asset) => void }) {
-  const children = ASSETS.filter((a) => a.parentId === asset.id);
+function Detail({ asset, allAssets, onClose, onOpenChild }: { asset: Asset; allAssets: Asset[]; onClose: () => void; onOpenChild: (a: Asset) => void }) {
+  const children = allAssets.filter((a) => a.parentId === asset.id);
   return (
     <div className="fixed inset-0 bg-black/30 flex justify-end z-20" onClick={onClose}>
       <div className="w-[460px] bg-white h-full shadow-xl overflow-y-auto" onClick={(e) => e.stopPropagation()}>
@@ -74,10 +76,16 @@ function Detail({ asset, onClose, onOpenChild }: { asset: Asset; onClose: () => 
 }
 
 export default function Assets({ company, search }: { company: string; search: string }) {
+  const [assets, setAssets] = useState<Asset[] | null>(null);
   const [selected, setSelected] = useState<Asset | null>(null);
   const [categoryFilter, setCategoryFilter] = useState("All Categories");
 
-  const topLevel = ASSETS.filter((a) => !a.parentId);
+  useEffect(() => {
+    fetchAssets().then(setAssets);
+  }, []);
+
+  const all = assets ?? [];
+  const topLevel = all.filter((a) => !a.parentId);
   const categories = ["All Categories", ...Array.from(new Set(topLevel.map((a) => a.category)))];
 
   const filtered = topLevel.filter(
@@ -92,7 +100,14 @@ export default function Assets({ company, search }: { company: string; search: s
   return (
     <div className="p-8">
       <div className="flex items-center justify-between mb-4">
-        <div className="text-xs text-slate-400">{filtered.length} assets</div>
+        <div className="flex items-center gap-3">
+          <div className="text-xs text-slate-400">{filtered.length} assets</div>
+          {isSupabaseConfigured ? (
+            <span className="flex items-center gap-1 text-xs text-accent-dark"><Database size={12} /> Live — connected to Supabase</span>
+          ) : (
+            <span className="flex items-center gap-1 text-xs text-slate-400"><CircleDot size={12} /> Demo data</span>
+          )}
+        </div>
         <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="text-sm border border-slate-200 rounded-md px-3 py-1.5 bg-white text-slate-700">
           {categories.map((c) => <option key={c}>{c}</option>)}
         </select>
@@ -111,12 +126,15 @@ export default function Assets({ company, search }: { company: string; search: s
             </tr>
           </thead>
           <tbody>
-            {filtered.map((a) => (
+            {assets === null && (
+              <tr><td colSpan={6} className="px-5 py-8 text-center text-slate-400">Loading…</td></tr>
+            )}
+            {assets !== null && filtered.map((a) => (
               <tr key={a.id} onClick={() => setSelected(a)} className="border-b border-slate-50 last:border-0 hover:bg-slate-50 cursor-pointer">
                 <td className="px-5 py-3">
                   <div className="font-medium text-slate-800">{a.manufacturer} {a.model}</div>
                   <Tag>{a.tag}</Tag>
-                  {a.isBundle && <span className="ml-2 text-[11px] text-indigo-500">bundle · 4 components</span>}
+                  {a.isBundle && <span className="ml-2 text-[11px] text-indigo-500">bundle</span>}
                 </td>
                 <td className="px-5 py-3 text-slate-600">{a.category}</td>
                 <td className="px-5 py-3 text-slate-600">{a.owner}</td>
@@ -125,14 +143,14 @@ export default function Assets({ company, search }: { company: string; search: s
                 <td className="px-5 py-3 text-slate-500">{a.warrantyEnd}</td>
               </tr>
             ))}
-            {filtered.length === 0 && (
+            {assets !== null && filtered.length === 0 && (
               <tr><td colSpan={6} className="px-5 py-8 text-center text-slate-400">No assets match.</td></tr>
             )}
           </tbody>
         </table>
       </div>
 
-      {selected && <Detail asset={selected} onClose={() => setSelected(null)} onOpenChild={(c) => setSelected(c)} />}
+      {selected && <Detail asset={selected} allAssets={all} onClose={() => setSelected(null)} onOpenChild={(c) => setSelected(c)} />}
     </div>
   );
 }

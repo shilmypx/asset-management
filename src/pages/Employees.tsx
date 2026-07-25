@@ -1,6 +1,8 @@
-import React, { useState } from "react";
-import { X } from "lucide-react";
-import { EMPLOYEES, ASSETS, Employee } from "../lib/mockData";
+import React, { useEffect, useState } from "react";
+import { X, Database, CircleDot } from "lucide-react";
+import { Employee } from "../lib/mockData";
+import { fetchEmployees } from "../lib/api/employees";
+import { isSupabaseConfigured } from "../lib/supabaseClient";
 import { StatusPill, Tag, Field } from "../components/Ui";
 
 function statusToPill(status: Employee["status"]) {
@@ -10,7 +12,6 @@ function statusToPill(status: Employee["status"]) {
 }
 
 function Detail({ emp, onClose }: { emp: Employee; onClose: () => void }) {
-  const owned = ASSETS.filter((a) => a.owner === emp.name);
   return (
     <div className="fixed inset-0 bg-black/30 flex justify-end z-20" onClick={onClose}>
       <div className="w-[440px] bg-white h-full shadow-xl overflow-y-auto" onClick={(e) => e.stopPropagation()}>
@@ -31,20 +32,8 @@ function Detail({ emp, onClose }: { emp: Employee; onClose: () => void }) {
             <Field label="Manager" value={emp.manager} />
             <Field label="Joined" value={emp.joined} />
           </div>
-          <div>
-            <div className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Assigned Hardware ({owned.length})</div>
-            {owned.length === 0 && <div className="text-sm text-slate-400">No hardware assigned.</div>}
-            <div className="space-y-2">
-              {owned.map((a) => (
-                <div key={a.id} className="flex items-center justify-between border border-slate-200 rounded-md px-3 py-2">
-                  <div>
-                    <div className="text-sm text-slate-800">{a.manufacturer} {a.model}</div>
-                    <Tag>{a.tag}</Tag>
-                  </div>
-                  <StatusPill status={a.status} />
-                </div>
-              ))}
-            </div>
+          <div className="text-xs text-slate-400 border-t border-slate-100 pt-4">
+            Assigned hardware/software lookups join against the assets and software_licenses tables next — not wired to this panel yet.
           </div>
         </div>
       </div>
@@ -53,8 +42,14 @@ function Detail({ emp, onClose }: { emp: Employee; onClose: () => void }) {
 }
 
 export default function Employees({ company, search }: { company: string; search: string }) {
+  const [employees, setEmployees] = useState<Employee[] | null>(null);
   const [selected, setSelected] = useState<Employee | null>(null);
-  const filtered = EMPLOYEES.filter(
+
+  useEffect(() => {
+    fetchEmployees().then(setEmployees);
+  }, []);
+
+  const filtered = (employees ?? []).filter(
     (e) =>
       (company === "All Companies" || e.company === company) &&
       (e.name.toLowerCase().includes(search.toLowerCase()) || e.id.toLowerCase().includes(search.toLowerCase()))
@@ -62,6 +57,13 @@ export default function Employees({ company, search }: { company: string; search
 
   return (
     <div className="p-8">
+      <div className="flex justify-end mb-2">
+        {isSupabaseConfigured ? (
+          <span className="flex items-center gap-1 text-xs text-accent-dark"><Database size={12} /> Live — connected to Supabase</span>
+        ) : (
+          <span className="flex items-center gap-1 text-xs text-slate-400"><CircleDot size={12} /> Demo data</span>
+        )}
+      </div>
       <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
         <table className="w-full text-sm">
           <thead>
@@ -74,7 +76,10 @@ export default function Employees({ company, search }: { company: string; search
             </tr>
           </thead>
           <tbody>
-            {filtered.map((e) => (
+            {employees === null && (
+              <tr><td colSpan={5} className="px-5 py-8 text-center text-slate-400">Loading…</td></tr>
+            )}
+            {employees !== null && filtered.map((e) => (
               <tr key={e.id} onClick={() => setSelected(e)} className="border-b border-slate-50 last:border-0 hover:bg-slate-50 cursor-pointer">
                 <td className="px-5 py-3">
                   <div className="font-medium text-slate-800">{e.name}</div>
@@ -92,7 +97,7 @@ export default function Employees({ company, search }: { company: string; search
                 <td className="px-5 py-3 text-slate-500">{e.joined}</td>
               </tr>
             ))}
-            {filtered.length === 0 && (
+            {employees !== null && filtered.length === 0 && (
               <tr><td colSpan={5} className="px-5 py-8 text-center text-slate-400">No employees match.</td></tr>
             )}
           </tbody>

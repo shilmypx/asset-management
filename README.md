@@ -21,7 +21,7 @@ Opens at `http://localhost:5173` running against in-memory mock data. Fine for b
 ## Connecting a real backend (Supabase)
 
 1. Create a free Supabase project at [supabase.com](https://supabase.com) (or your own — organization/project name doesn't matter).
-2. Run the schema against it: open the Supabase SQL editor and paste in the contents of `db/schema.sql` (or `psql "$DATABASE_URL" -f db/schema.sql` if you prefer the CLI). This creates all tables and seeds the four companies (Karawa, O2 Café, Joy, JOT Events) plus the shared departments.
+2. Run the schema against it: open the Supabase SQL editor and paste in the contents of `db/schema.sql` (or `psql "$DATABASE_URL" -f db/schema.sql` if you prefer the CLI). This creates all tables and seeds the four companies (Karawa, O2 Café, Joy, JOT Events) plus the shared departments. Then run `db/views.sql` the same way — it adds the joined views (`v_employees`, `v_assets`) the frontend queries.
 3. Copy `.env.example` to `.env.local` and fill in your project's URL and anon key (Supabase dashboard → Project Settings → API).
 4. Restart `npm run dev` — the Org Structure page will now show "Live — connected to Supabase" and read real data instead of the mock set.
 
@@ -34,6 +34,6 @@ Opens at `http://localhost:5173` running against in-memory mock data. Fine for b
 
 ## Status
 
-- **Live-data-ready:** Org Structure (Companies + Org Units) reads from Supabase when configured, falls back to mock data otherwise. `src/lib/api/org.ts` is the template — every other module follows the same pattern (try Supabase → fall back to mock) as it gets wired up.
-- **Still mock-only:** Dashboard, Employees, Hardware Assets — display correctly, not yet reading/writing a real backend.
-- **Not yet built:** Check-Out/Check-In, Procurement, Self-Service, Incidents, Repair, Contracts, Reports, Admin CRUD forms (Master Data, RBAC, Depreciation Settings, etc.) — schema exists in `db/schema.sql`, UI doesn't yet.
+- **Live-data-ready:** Org Structure, Employees, Hardware Assets — all read from Supabase when configured (`db/views.sql` adds two views, `v_employees` and `v_assets`, that resolve joins/polymorphic ownership so the frontend queries one row per record), falling back to mock data otherwise. `src/lib/api/` is the pattern every remaining module follows.
+- **Dashboard** — still mock-only; next in line to wire up (aggregation queries against `v_assets`).
+- **Not yet built:** Check-Out/Check-In, Procurement, Self-Service, Incidents, Repair, Contracts, Reports, Admin CRUD forms (Master Data, RBAC, Depreciation Settings, etc.), and all *write* operations (the app is read-only against live data so far — `createCompany`/`updateOrgUnit` exist in `src/lib/api/org.ts` as the pattern, but nothing in the UI calls them yet). Schema for all of it exists in `db/schema.sql`.
