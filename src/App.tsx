@@ -14,6 +14,7 @@ import MasterDataAdmin from "./pages/admin/MasterData";
 import OrgSettings from "./pages/admin/OrgSettings";
 import CheckOutCheckIn from "./pages/CheckOutCheckIn";
 import Procurement from "./pages/Procurement";
+import SelfService from "./pages/SelfService";
 
 const TITLES: Record<string, string> = {
   "/": "Dashboard",
@@ -22,6 +23,7 @@ const TITLES: Record<string, string> = {
   "/assets": "Hardware Assets",
   "/checkout": "Check-Out / Check-In",
   "/procurement": "Procurement",
+  "/self-service": "Self-Service",
   "/admin/companies": "Admin · Companies",
   "/admin/org-units": "Admin · Org Units",
   "/admin/roles": "Admin · Roles & Permissions",
@@ -55,6 +57,7 @@ export default function App() {
           <Route path="/assets" element={<Assets company={company} search={search} />} />
           <Route path="/checkout" element={<CheckOutCheckIn />} />
           <Route path="/procurement" element={<Procurement />} />
+          <Route path="/self-service" element={<SelfService />} />
           <Route path="/admin/companies" element={<CompaniesAdmin />} />
           <Route path="/admin/org-units" element={<OrgUnitsAdmin />} />
           <Route path="/admin/roles" element={<RolesAdmin />} />

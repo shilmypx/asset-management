@@ -40,6 +40,8 @@ Opens at `http://localhost:5173` running against in-memory mock data. Fine for b
 - **Check-Out / Check-In** — real assignment flow: checking out sets the asset's owner + status and logs an `asset_assignments` row; checking in closes that row, records condition/remarks, and returns the asset to Available (or leaves it unassigned-but-flagged if condition is Damaged/Needs Repair, ready for a repair record next)
 - **Auth architecture note:** the `users` table is app-level data only (role links, employee link, lock status) — actual credentials live in Supabase's built-in `auth.users`, not in this table.
 
-**Not yet built:** Self-Service, Software & SaaS Licenses, Network Components, Repair & Maintenance, Contracts & Warranty, Incidents/Problems/Changes, Inventory Audit, Reports, Barcode printing, Automation Rules. Schema for all of it exists in `db/schema.sql`.
+**Not yet built:** Software & SaaS Licenses, Network Components, Repair & Maintenance, Contracts & Warranty, Incidents/Problems/Changes, Inventory Audit, Reports, Barcode printing, Automation Rules. Schema for all of it exists in `db/schema.sql`.
+
+**Self-Service** — employee portal (My Assets, My Requests, New Request form) + an admin approval queue. No login screen exists yet, so "who's viewing" is a plain employee picker standing in for a real Supabase Auth session — flagged in the UI itself, not hidden. Demo mode lets you actually submit a request (it mutates an in-memory list) even though other demo-mode writes are blocked, since this one's low-stakes and worth being able to click through without a backend.
 
 **Procurement** — PO list + line items + status workflow (draft → pending approval → approved → ordered → received → closed). Receiving a line while a PO is "ordered" creates a real `assets` row and links it back to the line — this is the actual request-to-inventory loop, not just a status tracker.

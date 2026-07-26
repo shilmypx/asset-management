@@ -1,6 +1,6 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, Building2, Users, Laptop, Settings, Network, ShieldCheck, UserCog, ListTree, MapPin, ScanBarcode, ShoppingCart } from "lucide-react";
+import { LayoutDashboard, Building2, Users, Laptop, Settings, Network, ShieldCheck, UserCog, ListTree, MapPin, ScanBarcode, ShoppingCart, UserCheck } from "lucide-react";
 
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
@@ -9,6 +9,7 @@ const NAV = [
   { to: "/assets", label: "Hardware Assets", icon: Laptop },
   { to: "/checkout", label: "Check-Out / Check-In", icon: ScanBarcode },
   { to: "/procurement", label: "Procurement", icon: ShoppingCart },
+  { to: "/self-service", label: "Self-Service", icon: UserCheck },
 ];
 
 const ADMIN_NAV = [
