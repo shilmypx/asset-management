@@ -1,3 +1,4 @@
+import { ScanLine } from "lucide-react";
 import React from "react";
 import { NavLink } from "react-router-dom";
 import { LayoutDashboard, Building2, Users, Laptop, Settings, Network, ShieldCheck, UserCog, ListTree, MapPin, ScanBarcode, ShoppingCart, UserCheck, KeyRound, Router, Wrench, FileText, AlertCircle } from "lucide-react";
@@ -15,6 +16,7 @@ const NAV = [
   { to: "/repairs", label: "Repair & Maintenance", icon: Wrench },
   { to: "/contracts", label: "Contracts & Warranty", icon: FileText },
   { to: "/itsm", label: "Incidents / Problems / Changes", icon: AlertCircle },
+  { to: "/audit", label: "Inventory Audit", icon: ScanLine },
 ];
 
 const ADMIN_NAV = [

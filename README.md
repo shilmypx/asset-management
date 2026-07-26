@@ -40,7 +40,9 @@ Opens at `http://localhost:5173` running against in-memory mock data. Fine for b
 - **Check-Out / Check-In** — real assignment flow: checking out sets the asset's owner + status and logs an `asset_assignments` row; checking in closes that row, records condition/remarks, and returns the asset to Available (or leaves it unassigned-but-flagged if condition is Damaged/Needs Repair, ready for a repair record next)
 - **Auth architecture note:** the `users` table is app-level data only (role links, employee link, lock status) — actual credentials live in Supabase's built-in `auth.users`, not in this table.
 
-**Not yet built:** Inventory Audit, Reports, Barcode printing, Automation Rules. Schema for all of it exists in `db/schema.sql`.
+**Not yet built:** Reports, Barcode printing, Automation Rules. Schema for all of it exists in `db/schema.sql`.
+
+**Inventory Audit** — start a session scoped to a company, scan barcodes against that company's expected assets (matched/unexpected tallied live), and "Complete audit" computes the "missing" list — every expected asset never scanned — as a report rather than a manual checklist. Works fully in demo mode (in-memory sessions) since it's genuinely useful to try without a backend.
 
 **Incidents / Problems / Changes** — three tabs, one shared page. Incidents have the most depth: a status pipeline (Open → In Progress → Resolved → Closed) and a running timeline you can append updates to, matching the "audit trail per ticket" pattern from the spec. Problems and Changes are lighter (list + create) since they see far less day-to-day volume — this matched effort to actual usage rather than building all three to the same depth by default. Problems/Changes writes work in demo mode too (like Self-Service) since they're low-stakes to click through.
 
