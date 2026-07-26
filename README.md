@@ -40,7 +40,9 @@ Opens at `http://localhost:5173` running against in-memory mock data. Fine for b
 - **Check-Out / Check-In** — real assignment flow: checking out sets the asset's owner + status and logs an `asset_assignments` row; checking in closes that row, records condition/remarks, and returns the asset to Available (or leaves it unassigned-but-flagged if condition is Damaged/Needs Repair, ready for a repair record next)
 - **Auth architecture note:** the `users` table is app-level data only (role links, employee link, lock status) — actual credentials live in Supabase's built-in `auth.users`, not in this table.
 
-**Not yet built:** Network Components, Repair & Maintenance, Contracts & Warranty, Incidents/Problems/Changes, Inventory Audit, Reports, Barcode printing, Automation Rules. Schema for all of it exists in `db/schema.sql`.
+**Not yet built:** Repair & Maintenance, Contracts & Warranty, Incidents/Problems/Changes, Inventory Audit, Reports, Barcode printing, Automation Rules. Schema for all of it exists in `db/schema.sql`.
+
+**Network Components** — filters Hardware Assets down to network-category devices (Router/Firewall/Switch/Server/etc.), shows IP/MAC/firmware/rack from `network_asset_details`, and lets you build the dependency graph (`asset_relationships`) directly from the detail panel — e.g. "Server connected to Router". This is the data behind the App→Server→Rack→Data Center relationship mapping from the original spec; there's no visual graph rendering yet, just the list form of it.
 
 **Self-Service** — employee portal (My Assets, My Requests, New Request form) + an admin approval queue. No login screen exists yet, so "who's viewing" is a plain employee picker standing in for a real Supabase Auth session — flagged in the UI itself, not hidden. Demo mode lets you actually submit a request (it mutates an in-memory list) even though other demo-mode writes are blocked, since this one's low-stakes and worth being able to click through without a backend.
 
