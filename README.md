@@ -40,7 +40,9 @@ Opens at `http://localhost:5173` running against in-memory mock data. Fine for b
 - **Check-Out / Check-In** — real assignment flow: checking out sets the asset's owner + status and logs an `asset_assignments` row; checking in closes that row, records condition/remarks, and returns the asset to Available (or leaves it unassigned-but-flagged if condition is Damaged/Needs Repair, ready for a repair record next)
 - **Auth architecture note:** the `users` table is app-level data only (role links, employee link, lock status) — actual credentials live in Supabase's built-in `auth.users`, not in this table.
 
-**Not yet built:** Incidents/Problems/Changes, Inventory Audit, Reports, Barcode printing, Automation Rules. Schema for all of it exists in `db/schema.sql`.
+**Not yet built:** Inventory Audit, Reports, Barcode printing, Automation Rules. Schema for all of it exists in `db/schema.sql`.
+
+**Incidents / Problems / Changes** — three tabs, one shared page. Incidents have the most depth: a status pipeline (Open → In Progress → Resolved → Closed) and a running timeline you can append updates to, matching the "audit trail per ticket" pattern from the spec. Problems and Changes are lighter (list + create) since they see far less day-to-day volume — this matched effort to actual usage rather than building all three to the same depth by default. Problems/Changes writes work in demo mode too (like Self-Service) since they're low-stakes to click through.
 
 **Contracts & Warranty** — contracts list with color-coded renewal urgency (red = overdue, amber = within 30 days, green = fine), plus a warranty extension log. Logging an extension updates the asset's current `warranty_end` while leaving the extension history intact as its own record — so "what's the current coverage" and "how did we get here" are both answerable.
 
