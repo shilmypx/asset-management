@@ -18,6 +18,7 @@ import SelfService from "./pages/SelfService";
 import SoftwareLicenses from "./pages/SoftwareLicenses";
 import NetworkComponents from "./pages/NetworkComponents";
 import Repairs from "./pages/Repairs";
+import Contracts from "./pages/Contracts";
 
 const TITLES: Record<string, string> = {
   "/": "Dashboard",
@@ -30,6 +31,7 @@ const TITLES: Record<string, string> = {
   "/software": "Software & SaaS Licenses",
   "/network": "Network Components",
   "/repairs": "Repair & Maintenance",
+  "/contracts": "Contracts & Warranty",
   "/admin/companies": "Admin · Companies",
   "/admin/org-units": "Admin · Org Units",
   "/admin/roles": "Admin · Roles & Permissions",
@@ -67,6 +69,7 @@ export default function App() {
           <Route path="/software" element={<SoftwareLicenses />} />
           <Route path="/network" element={<NetworkComponents />} />
           <Route path="/repairs" element={<Repairs />} />
+          <Route path="/contracts" element={<Contracts />} />
           <Route path="/admin/companies" element={<CompaniesAdmin />} />
           <Route path="/admin/org-units" element={<OrgUnitsAdmin />} />
           <Route path="/admin/roles" element={<RolesAdmin />} />

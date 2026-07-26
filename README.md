@@ -40,7 +40,9 @@ Opens at `http://localhost:5173` running against in-memory mock data. Fine for b
 - **Check-Out / Check-In** — real assignment flow: checking out sets the asset's owner + status and logs an `asset_assignments` row; checking in closes that row, records condition/remarks, and returns the asset to Available (or leaves it unassigned-but-flagged if condition is Damaged/Needs Repair, ready for a repair record next)
 - **Auth architecture note:** the `users` table is app-level data only (role links, employee link, lock status) — actual credentials live in Supabase's built-in `auth.users`, not in this table.
 
-**Not yet built:** Contracts & Warranty, Incidents/Problems/Changes, Inventory Audit, Reports, Barcode printing, Automation Rules. Schema for all of it exists in `db/schema.sql`.
+**Not yet built:** Incidents/Problems/Changes, Inventory Audit, Reports, Barcode printing, Automation Rules. Schema for all of it exists in `db/schema.sql`.
+
+**Contracts & Warranty** — contracts list with color-coded renewal urgency (red = overdue, amber = within 30 days, green = fine), plus a warranty extension log. Logging an extension updates the asset's current `warranty_end` while leaving the extension history intact as its own record — so "what's the current coverage" and "how did we get here" are both answerable.
 
 **Repair & Maintenance** — this is the module with actual state-machine logic, not just a status tracker: sending an asset for repair flips it to "Under Repair"; issuing a temporary replacement (from internal stock or noted as a warranty vendor loaner) hands the original asset's assignment to the replacement; marking the repair complete auto-recovers any active replacement and returns both assets to their correct states in one action.
 
