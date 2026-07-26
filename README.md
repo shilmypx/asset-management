@@ -40,7 +40,9 @@ Opens at `http://localhost:5173` running against in-memory mock data. Fine for b
 - **Check-Out / Check-In** — real assignment flow: checking out sets the asset's owner + status and logs an `asset_assignments` row; checking in closes that row, records condition/remarks, and returns the asset to Available (or leaves it unassigned-but-flagged if condition is Damaged/Needs Repair, ready for a repair record next)
 - **Auth architecture note:** the `users` table is app-level data only (role links, employee link, lock status) — actual credentials live in Supabase's built-in `auth.users`, not in this table.
 
-**Not yet built:** Repair & Maintenance, Contracts & Warranty, Incidents/Problems/Changes, Inventory Audit, Reports, Barcode printing, Automation Rules. Schema for all of it exists in `db/schema.sql`.
+**Not yet built:** Contracts & Warranty, Incidents/Problems/Changes, Inventory Audit, Reports, Barcode printing, Automation Rules. Schema for all of it exists in `db/schema.sql`.
+
+**Repair & Maintenance** — this is the module with actual state-machine logic, not just a status tracker: sending an asset for repair flips it to "Under Repair"; issuing a temporary replacement (from internal stock or noted as a warranty vendor loaner) hands the original asset's assignment to the replacement; marking the repair complete auto-recovers any active replacement and returns both assets to their correct states in one action.
 
 **Network Components** — filters Hardware Assets down to network-category devices (Router/Firewall/Switch/Server/etc.), shows IP/MAC/firmware/rack from `network_asset_details`, and lets you build the dependency graph (`asset_relationships`) directly from the detail panel — e.g. "Server connected to Router". This is the data behind the App→Server→Rack→Data Center relationship mapping from the original spec; there's no visual graph rendering yet, just the list form of it.
 

@@ -1,6 +1,6 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, Building2, Users, Laptop, Settings, Network, ShieldCheck, UserCog, ListTree, MapPin, ScanBarcode, ShoppingCart, UserCheck, KeyRound, Router } from "lucide-react";
+import { LayoutDashboard, Building2, Users, Laptop, Settings, Network, ShieldCheck, UserCog, ListTree, MapPin, ScanBarcode, ShoppingCart, UserCheck, KeyRound, Router, Wrench } from "lucide-react";
 
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
@@ -12,6 +12,7 @@ const NAV = [
   { to: "/self-service", label: "Self-Service", icon: UserCheck },
   { to: "/software", label: "Software & SaaS Licenses", icon: KeyRound },
   { to: "/network", label: "Network Components", icon: Router },
+  { to: "/repairs", label: "Repair & Maintenance", icon: Wrench },
 ];
 
 const ADMIN_NAV = [
