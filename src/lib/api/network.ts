@@ -55,6 +55,18 @@ export async function fetchRelationships(assetId: string): Promise<Relationship[
   }));
 }
 
+export async function fetchAllRelationships(): Promise<Relationship[]> {
+  if (!isSupabaseConfigured) return MOCK_RELATIONSHIPS;
+  const { data, error } = await supabase
+    .from("asset_relationships")
+    .select("id, source_asset_id, target_asset_id, relationship_type, source:assets!source_asset_id(asset_number), target:assets!target_asset_id(asset_number)");
+  if (error) throw error;
+  return (data as any[]).map((r) => ({
+    id: r.id, source_asset_id: r.source_asset_id, target_asset_id: r.target_asset_id,
+    relationship_type: r.relationship_type, source_name: r.source?.asset_number, target_name: r.target?.asset_number,
+  }));
+}
+
 export async function createRelationship(sourceId: string, targetId: string, type: string) {
   if (!isSupabaseConfigured) throw new Error("Connect a Supabase project before writing data.");
   const { error } = await supabase.from("asset_relationships").insert({ source_asset_id: sourceId, target_asset_id: targetId, relationship_type: type });

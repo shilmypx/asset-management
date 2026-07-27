@@ -5,3 +5,12 @@
 html, body, #root {
   height: 100%;
 }
+
+@media print {
+  aside, header, .no-print {
+    display: none !important;
+  }
+  body {
+    background: white;
+  }
+}

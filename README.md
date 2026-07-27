@@ -46,12 +46,12 @@ Opens at `http://localhost:5173` running against in-memory mock data. Fine for b
 | Procurement | ✅ PO → line items → receive-into-asset |
 | Self-Service | ✅ Portal + approval queue |
 | Software & SaaS Licenses | ✅ Seat assignment/revocation |
-| Network Components | ✅ Device details + relationship graph (list form) |
+| Network Components | ✅ Device details + relationship graph (list AND visual topology view) |
 | Repair & Maintenance | ✅ Full replacement issue/recover workflow |
 | Contracts & Warranty | ✅ Renewal urgency + extension log |
 | Incidents / Problems / Changes | ✅ Status pipeline + timeline (Incidents); list+create (Problems/Changes) |
 | Inventory Audit | ✅ Scan reconciliation + missing-asset report |
-| Reports | ✅ 6 reports, CSV export |
+| Reports | ✅ 6 reports, CSV export + print-to-PDF |
 | Barcode Printing | ✅ Real Code128 + QR generation, print-ready |
 | Automation Rules | ✅ Configuration UI only — no execution engine (see below) |
 
@@ -66,4 +66,9 @@ Opens at `http://localhost:5173` running against in-memory mock data. Fine for b
 - **Reports**: CSV export only — no PDF/Excel export or scheduled email delivery yet.
 - **Demo-mode writes**: most admin writes are blocked without Supabase connected (with a clear disabled-state tooltip). A few low-stakes ones — Self-Service requests, Problems/Changes, Inventory Audit sessions — work against an in-memory mock store even in demo mode, since they're safe to click through without a backend.
 
-**What's genuinely still missing for production use:** a scheduled job runner for notifications/automation rules, PDF/Excel report export, and a visual (not list-form) relationship graph. (Check-Out/Check-In's employee picker is intentional, not a gap — an IT tech assigning a laptop to someone else is supposed to pick who, not use their own identity.)
+**What's genuinely still missing for production use:** a scheduled job runner for notifications/automation rules — that one's real backend infrastructure (a Supabase Edge Function on a cron trigger) that a frontend genuinely can't do on its own, so it stays a documented gap rather than something faked client-side. Everything else — including the visual relationship graph and PDF report export, both added since the initial pass — now has a working version.
+
+- **Network Components** now has a **Topology** view (toggle next to the device list) — an SVG graph laying devices out in a circle with color-coded edges per relationship type (connected to / depends on / runs on / located in), reading live from `asset_relationships`.
+- **Reports** now has a **Print / Save as PDF** button alongside CSV export — uses the browser's native print-to-PDF with a print stylesheet that hides the sidebar/nav/picker and prints just the report table.
+
+(Check-Out/Check-In's employee picker is intentional, not a gap — an IT tech assigning a laptop to someone else is supposed to pick who, not use their own identity.)

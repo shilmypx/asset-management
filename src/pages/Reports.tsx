@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Download, FileBarChart } from "lucide-react";
+import { Download, FileBarChart, Printer } from "lucide-react";
 import { fetchAssets } from "../lib/api/assets";
 import { fetchEmployees } from "../lib/api/employees";
 import { fetchLicenses } from "../lib/api/software";
@@ -46,8 +46,8 @@ export default function Reports() {
 
   return (
     <div className="p-8">
-      <div className="grid grid-cols-4 gap-4">
-        <div className="col-span-1 space-y-1">
+      <div className="grid grid-cols-4 gap-4 print:block">
+        <div className="col-span-1 space-y-1 no-print">
           {REPORTS.map((r) => (
             <button key={r.id} onClick={() => setActive(r.id)} className={`w-full text-left px-3 py-2.5 rounded-md text-sm ${active === r.id ? "bg-accent/10 text-accent-dark font-medium" : "text-slate-600 hover:bg-slate-50"}`}>
               <div className="flex items-center gap-2"><FileBarChart size={14} /> {r.label}</div>
@@ -56,14 +56,19 @@ export default function Reports() {
         </div>
 
         <div className="col-span-3">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-3 no-print">
             <div>
               <div className="text-sm font-medium text-slate-800">{REPORTS.find((r) => r.id === active)?.label}</div>
               <div className="text-xs text-slate-400">{REPORTS.find((r) => r.id === active)?.description}</div>
             </div>
-            <button onClick={handleExport} className="flex items-center gap-1.5 text-sm bg-slate-900 text-white px-3 py-1.5 rounded-md">
-              <Download size={14} /> Export CSV
-            </button>
+            <div className="flex gap-2">
+              <button onClick={() => window.print()} className="flex items-center gap-1.5 text-sm border border-slate-200 text-slate-700 px-3 py-1.5 rounded-md">
+                <Printer size={14} /> Print / Save as PDF
+              </button>
+              <button onClick={handleExport} className="flex items-center gap-1.5 text-sm bg-slate-900 text-white px-3 py-1.5 rounded-md">
+                <Download size={14} /> Export CSV
+              </button>
+            </div>
           </div>
 
           <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">

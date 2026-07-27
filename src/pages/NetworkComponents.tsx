@@ -2,11 +2,56 @@ import React, { useEffect, useState } from "react";
 import { X, Database, CircleDot, Network, Plus } from "lucide-react";
 import { Asset } from "../lib/mockData";
 import { fetchAssets } from "../lib/api/assets";
-import { fetchNetworkDetails, fetchRelationships, createRelationship, isNetworkCategory, NetworkDetail, Relationship } from "../lib/api/network";
+import { fetchNetworkDetails, fetchRelationships, fetchAllRelationships, createRelationship, isNetworkCategory, NetworkDetail, Relationship } from "../lib/api/network";
 import { isSupabaseConfigured } from "../lib/supabaseClient";
 import { StatusPill, Tag } from "../components/Ui";
 
+function TopologyGraph({ assets, relationships }: { assets: Asset[]; relationships: Relationship[] }) {
+  const size = 520;
+  const center = size / 2;
+  const radius = size / 2 - 70;
+  const positions: Record<string, { x: number; y: number }> = {};
+  assets.forEach((a, i) => {
+    const angle = (i / Math.max(assets.length, 1)) * 2 * Math.PI - Math.PI / 2;
+    positions[a.id] = { x: center + radius * Math.cos(angle), y: center + radius * Math.sin(angle) };
+  });
+
+  const EDGE_COLOR: Record<string, string> = { connected_to: "#94A3B8", depends_on: "#F59E0B", runs_on: "#6366F1", located_in: "#17B8A6" };
+
+  return (
+    <div className="bg-white border border-slate-200 rounded-lg p-4">
+      <div className="flex items-center gap-4 text-xs text-slate-500 mb-2">
+        {Object.entries(EDGE_COLOR).map(([type, color]) => (
+          <div key={type} className="flex items-center gap-1.5"><span className="h-0.5 w-4" style={{ backgroundColor: color }} /> {type.replace("_", " ")}</div>
+        ))}
+      </div>
+      <svg viewBox={`0 0 ${size} ${size}`} className="w-full max-w-xl mx-auto">
+        {relationships.map((r) => {
+          const s = positions[r.source_asset_id];
+          const t = positions[r.target_asset_id];
+          if (!s || !t) return null;
+          return <line key={r.id} x1={s.x} y1={s.y} x2={t.x} y2={t.y} stroke={EDGE_COLOR[r.relationship_type] ?? "#CBD5E1"} strokeWidth={1.5} />;
+        })}
+        {assets.map((a) => {
+          const p = positions[a.id];
+          if (!p) return null;
+          return (
+            <g key={a.id}>
+              <circle cx={p.x} cy={p.y} r={22} fill="#F5F6F8" stroke="#17B8A6" strokeWidth={1.5} />
+              <text x={p.x} y={p.y + 4} textAnchor="middle" fontSize={9} fill="#0E8478" fontWeight={600}>{a.category.slice(0, 3).toUpperCase()}</text>
+              <text x={p.x} y={p.y + 34} textAnchor="middle" fontSize={9} fill="#64748B">{a.tag}</text>
+            </g>
+          );
+        })}
+      </svg>
+      {relationships.length === 0 && <div className="text-xs text-slate-400 text-center py-8">No relationships mapped yet — add some from a device's detail panel.</div>}
+    </div>
+  );
+}
+
 export default function NetworkComponents() {
+  const [viewMode, setViewMode] = useState<"list" | "topology">("list");
+  const [allRelationships, setAllRelationships] = useState<Relationship[]>([]);
   const [assets, setAssets] = useState<Asset[]>([]);
   const [details, setDetails] = useState<Record<string, NetworkDetail>>({});
   const [selected, setSelected] = useState<Asset | null>(null);
@@ -22,6 +67,7 @@ export default function NetworkComponents() {
       const d = await fetchNetworkDetails(netAssets.map((a) => a.id));
       setDetails(d);
     });
+    fetchAllRelationships().then(setAllRelationships);
   }, []);
 
   useEffect(() => {
@@ -36,13 +82,20 @@ export default function NetworkComponents() {
       await createRelationship(selected.id, targetId, relType);
       setTargetId("");
       await fetchRelationships(selected.id).then(setRelationships);
+      await fetchAllRelationships().then(setAllRelationships);
     } catch (err: any) { setError(err.message ?? "Failed to save."); }
   }
 
   return (
     <div className="p-8">
       <div className="flex items-center justify-between mb-4">
-        <div className="text-xs text-slate-400">{assets.length} network components</div>
+        <div className="flex items-center gap-3">
+          <div className="text-xs text-slate-400">{assets.length} network components</div>
+          <div className="flex border border-slate-200 rounded-md overflow-hidden text-xs">
+            <button onClick={() => setViewMode("list")} className={`px-2.5 py-1 ${viewMode === "list" ? "bg-slate-900 text-white" : "text-slate-500"}`}>List</button>
+            <button onClick={() => setViewMode("topology")} className={`px-2.5 py-1 ${viewMode === "topology" ? "bg-slate-900 text-white" : "text-slate-500"}`}>Topology</button>
+          </div>
+        </div>
         {isSupabaseConfigured ? (
           <span className="flex items-center gap-1 text-xs text-accent-dark"><Database size={12} /> Live</span>
         ) : (
@@ -50,37 +103,41 @@ export default function NetworkComponents() {
         )}
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-left text-xs text-slate-400 border-b border-slate-100 bg-slate-50">
-              <th className="px-5 py-3 font-medium">Device</th>
-              <th className="px-5 py-3 font-medium">Category</th>
-              <th className="px-5 py-3 font-medium">IP Address</th>
-              <th className="px-5 py-3 font-medium">Rack</th>
-              <th className="px-5 py-3 font-medium">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {assets.map((a) => {
-              const d = details[a.id];
-              return (
-                <tr key={a.id} onClick={() => setSelected(a)} className="border-b border-slate-50 last:border-0 hover:bg-slate-50 cursor-pointer">
-                  <td className="px-5 py-3">
-                    <div className="font-medium text-slate-800">{a.manufacturer} {a.model}</div>
-                    <Tag>{a.tag}</Tag>
-                  </td>
-                  <td className="px-5 py-3 text-slate-600">{a.category}</td>
-                  <td className="px-5 py-3 text-slate-600 font-mono text-xs">{d?.ip_address ?? "—"}</td>
-                  <td className="px-5 py-3 text-slate-600">{d?.rack_name ?? "—"}</td>
-                  <td className="px-5 py-3"><StatusPill status={a.status} /></td>
-                </tr>
-              );
-            })}
-            {assets.length === 0 && <tr><td colSpan={5} className="px-5 py-8 text-center text-slate-400">No network components yet.</td></tr>}
-          </tbody>
-        </table>
-      </div>
+      {viewMode === "list" && (
+        <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-xs text-slate-400 border-b border-slate-100 bg-slate-50">
+                <th className="px-5 py-3 font-medium">Device</th>
+                <th className="px-5 py-3 font-medium">Category</th>
+                <th className="px-5 py-3 font-medium">IP Address</th>
+                <th className="px-5 py-3 font-medium">Rack</th>
+                <th className="px-5 py-3 font-medium">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {assets.map((a) => {
+                const d = details[a.id];
+                return (
+                  <tr key={a.id} onClick={() => setSelected(a)} className="border-b border-slate-50 last:border-0 hover:bg-slate-50 cursor-pointer">
+                    <td className="px-5 py-3">
+                      <div className="font-medium text-slate-800">{a.manufacturer} {a.model}</div>
+                      <Tag>{a.tag}</Tag>
+                    </td>
+                    <td className="px-5 py-3 text-slate-600">{a.category}</td>
+                    <td className="px-5 py-3 text-slate-600 font-mono text-xs">{d?.ip_address ?? "—"}</td>
+                    <td className="px-5 py-3 text-slate-600">{d?.rack_name ?? "—"}</td>
+                    <td className="px-5 py-3"><StatusPill status={a.status} /></td>
+                  </tr>
+                );
+              })}
+              {assets.length === 0 && <tr><td colSpan={5} className="px-5 py-8 text-center text-slate-400">No network components yet.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {viewMode === "topology" && <TopologyGraph assets={assets} relationships={allRelationships} />}
 
       {selected && (
         <div className="fixed inset-0 bg-black/30 flex justify-end z-20" onClick={() => setSelected(null)}>

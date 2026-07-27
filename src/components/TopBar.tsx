@@ -13,7 +13,7 @@ type Props = {
 
 export default function TopBar({ title, company, setCompany, search, setSearch, showSearch }: Props) {
   return (
-    <div className="flex items-center justify-between px-8 py-5 border-b border-slate-200 bg-white">
+    <div className="no-print flex items-center justify-between px-8 py-5 border-b border-slate-200 bg-white">
       <h1 className="text-lg font-semibold text-slate-900">{title}</h1>
       <div className="flex items-center gap-3">
         {showSearch && (
