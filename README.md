@@ -22,8 +22,9 @@ Opens at `http://localhost:5173` running against in-memory mock data. Fine for b
 
 1. Create a free Supabase project at [supabase.com](https://supabase.com) (or your own — organization/project name doesn't matter).
 2. Run the schema against it: open the Supabase SQL editor and paste in the contents of `db/schema.sql` (or `psql "$DATABASE_URL" -f db/schema.sql` if you prefer the CLI). This creates all tables and seeds the four companies (Karawa, O2 Café, Joy, JOT Events) plus the shared departments. Then run `db/views.sql` the same way — it adds the joined views (`v_employees`, `v_assets`) the frontend queries.
-3. Copy `.env.example` to `.env.local` and fill in your project's URL and anon key (Supabase dashboard → Project Settings → API).
-4. Restart `npm run dev` — the Org Structure page will now show "Live — connected to Supabase" and read real data instead of the mock set.
+3. **Run `db/rls-policies.sql` before going anywhere near real data.** Without it, the anon key has no restrictions at all — any authenticated user (or, depending on your project's defaults, possibly anyone with the anon key) can read and write every company's data. This file enables Row-Level Security and scopes every table to the companies a user actually has a role in. It's not optional hardening — treat it as part of the schema setup, not a later step.
+4. Copy `.env.example` to `.env.local` and fill in your project's URL and anon key (Supabase dashboard → Project Settings → API).
+5. Restart `npm run dev` — the Org Structure page will now show "Live — connected to Supabase" and read real data instead of the mock set.
 
 ## Deploying (Vercel)
 
@@ -66,13 +67,15 @@ Opens at `http://localhost:5173` running against in-memory mock data. Fine for b
 - **Reports**: CSV export only — no PDF/Excel export or scheduled email delivery yet.
 - **Demo-mode writes**: most admin writes are blocked without Supabase connected (with a clear disabled-state tooltip). A few low-stakes ones — Self-Service requests, Problems/Changes, Inventory Audit sessions — work against an in-memory mock store even in demo mode, since they're safe to click through without a backend.
 
-**What's genuinely still missing for production use:** nothing has a *code* gap anymore — the last piece (scheduled automation execution) has real code in `supabase/functions/run-automation-rules/`, it's just not deployed from here since that needs your own `supabase` CLI login. To activate it:
+**Security note — read this before connecting real data:** the architecture doc recommended Postgres specifically for Row-Level Security, but that wasn't actually implemented until `db/rls-policies.sql` was added. It enforces the core multi-tenant boundary (a Karawa user can't read or write O2 Café's data) at the database layer. What it does **not** yet do: enforce the fine-grained view/add/edit/delete-per-module matrix from the Roles & Permission screen at the database layer — that's still UI-only (buttons disabled per permission, not blocked server-side). Doing that properly needs the `permissions` table's module list expanded to cover every functional area (it's currently seeded with only 7 of the ~15 modules the app actually has), which is a real design decision flagged in the SQL file's own comments rather than quietly skipped.
+
+**Automation execution:** the last functional piece is real code in `supabase/functions/run-automation-rules/`, not deployed from here since that needs your own `supabase` CLI login:
 
 ```bash
 supabase functions deploy run-automation-rules
 ```
 
-Then run `db/schedule-automation.sql` in the Supabase SQL editor (filling in your project ref and key) to schedule it daily via `pg_cron`. It currently evaluates `warranty_expiring`, `contract_expiring`, and `license_threshold_reached` against real data and writes `notifications` rows for the `send_notification` action — `repair_returned`/`asset_idle`/`disposal_due` and the other three actions are left as documented follow-ups in the function's own comments rather than stubbed to look finished when they aren't.
+Then run `db/schedule-automation.sql` in the Supabase SQL editor (filling in your project ref and key) to schedule it daily via `pg_cron`. It evaluates `warranty_expiring`, `contract_expiring`, and `license_threshold_reached` against real data and writes `notifications` rows — `repair_returned`/`asset_idle`/`disposal_due` and three of the four possible actions are left as documented follow-ups in the function's own comments rather than stubbed to look finished when they aren't.
 
 - **Network Components** now has a **Topology** view (toggle next to the device list) — an SVG graph laying devices out in a circle with color-coded edges per relationship type (connected to / depends on / runs on / located in), reading live from `asset_relationships`.
 - **Reports** now has a **Print / Save as PDF** button alongside CSV export — uses the browser's native print-to-PDF with a print stylesheet that hides the sidebar/nav/picker and prints just the report table.
