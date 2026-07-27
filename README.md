@@ -53,7 +53,7 @@ Opens at `http://localhost:5173` running against in-memory mock data. Fine for b
 | Inventory Audit | ✅ Scan reconciliation + missing-asset report |
 | Reports | ✅ 6 reports, CSV export + print-to-PDF |
 | Barcode Printing | ✅ Real Code128 + QR generation, print-ready |
-| Automation Rules | ✅ Configuration UI only — no execution engine (see below) |
+| Automation Rules | ✅ Config UI + real Edge Function (not auto-deployed — see below) |
 
 ### Module notes worth knowing before you build further
 
@@ -66,7 +66,13 @@ Opens at `http://localhost:5173` running against in-memory mock data. Fine for b
 - **Reports**: CSV export only — no PDF/Excel export or scheduled email delivery yet.
 - **Demo-mode writes**: most admin writes are blocked without Supabase connected (with a clear disabled-state tooltip). A few low-stakes ones — Self-Service requests, Problems/Changes, Inventory Audit sessions — work against an in-memory mock store even in demo mode, since they're safe to click through without a backend.
 
-**What's genuinely still missing for production use:** a scheduled job runner for notifications/automation rules — that one's real backend infrastructure (a Supabase Edge Function on a cron trigger) that a frontend genuinely can't do on its own, so it stays a documented gap rather than something faked client-side. Everything else — including the visual relationship graph and PDF report export, both added since the initial pass — now has a working version.
+**What's genuinely still missing for production use:** nothing has a *code* gap anymore — the last piece (scheduled automation execution) has real code in `supabase/functions/run-automation-rules/`, it's just not deployed from here since that needs your own `supabase` CLI login. To activate it:
+
+```bash
+supabase functions deploy run-automation-rules
+```
+
+Then run `db/schedule-automation.sql` in the Supabase SQL editor (filling in your project ref and key) to schedule it daily via `pg_cron`. It currently evaluates `warranty_expiring`, `contract_expiring`, and `license_threshold_reached` against real data and writes `notifications` rows for the `send_notification` action — `repair_returned`/`asset_idle`/`disposal_due` and the other three actions are left as documented follow-ups in the function's own comments rather than stubbed to look finished when they aren't.
 
 - **Network Components** now has a **Topology** view (toggle next to the device list) — an SVG graph laying devices out in a circle with color-coded edges per relationship type (connected to / depends on / runs on / located in), reading live from `asset_relationships`.
 - **Reports** now has a **Print / Save as PDF** button alongside CSV export — uses the browser's native print-to-PDF with a print stylesheet that hides the sidebar/nav/picker and prints just the report table.
