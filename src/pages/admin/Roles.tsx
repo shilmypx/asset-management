@@ -11,6 +11,13 @@ const MODULE_LABELS: Record<string, string> = {
   incidents: "Incidents",
   reports: "Reports",
   settings: "Settings",
+  procurement: "Procurement",
+  network: "Network Components",
+  repairs: "Repair & Maintenance",
+  contracts: "Contracts & Warranty",
+  inventory_audit: "Inventory Audit",
+  requests: "Self-Service Requests",
+  automation_rules: "Automation Rules",
 };
 const ACTION_ORDER = ["view", "add", "edit", "delete", "approve", "export", "print", "import"];
 

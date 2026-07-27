@@ -639,7 +639,11 @@ insert into departments (name, code, is_shared) values
 -- actions listed in ITAMS-Screens-Fields-Functions.md section 4.3.
 insert into permissions (module, action)
 select m, a from
-  (values ('dashboard'), ('employees'), ('hardware_assets'), ('software_licenses'), ('incidents'), ('reports'), ('settings')) as modules(m)
+  (values
+    ('dashboard'), ('employees'), ('hardware_assets'), ('software_licenses'),
+    ('incidents'), ('reports'), ('settings'), ('procurement'), ('network'),
+    ('repairs'), ('contracts'), ('inventory_audit'), ('requests'), ('automation_rules')
+  ) as modules(m)
   cross join
   (values ('view'), ('add'), ('edit'), ('delete'), ('approve'), ('export'), ('print'), ('import')) as actions(a)
 on conflict (module, action) do nothing;

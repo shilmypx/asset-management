@@ -1,19 +1,28 @@
 -- ITAMS — Row-Level Security policies
 -- Run this after db/schema.sql and db/views.sql.
 --
--- SCOPE OF THIS PASS: this enforces the multi-tenant boundary — a user
--- assigned to Karawa can't read or write O2 Café's data, and vice versa —
--- which is the security property that actually matters most (data leaking
--- across companies). It does NOT yet enforce the fine-grained module/action
--- matrix from the Roles & Permission Matrix screen (view/add/edit/delete
--- per module) at the database layer; that's still enforced in the UI only
--- (buttons disabled per permission) rather than at the RLS layer. Doing
--- that properly would mean expanding the `permissions` table's module list
--- to cover every functional area (procurement, repairs, contracts, audit,
--- etc. — currently seeded with only 7 of them, see db/schema.sql), which
--- is a real design decision, not something to bolt on silently here.
--- Company-scoping is the boundary every table gets today; permission-level
--- write enforcement is a documented follow-up, not a silent gap.
+-- SCOPE OF THIS PASS: enforces two layers now —
+--   1. Multi-tenant company-scoping (a Karawa user can't touch O2 Café's
+--      data) on every table.
+--   2. The actual view/add/edit/delete-per-module permission matrix from
+--      the Roles & Permission Matrix screen, for the 13 primary
+--      company-owned tables (org_units, locations, cost_centers, projects,
+--      employees, assets, software_licenses, data_centers, contracts,
+--      audit_sessions, purchase_orders, discovered_devices,
+--      automation_rules) — write operations on these now actually check
+--      has_permission(), not just company membership. Roles with
+--      is_system_role = true bypass the permission check (still subject
+--      to company-scoping) so an admin role doesn't need every checkbox
+--      individually ticked.
+--
+-- NOT YET covered by permission-matrix enforcement (company-scoping still
+-- applies): child/detail tables reached only via their parent (asset
+-- attachments/assignments/transfers/disposals, repair records, network
+-- details, software assignments, warranty extensions, PO lines, asset
+-- requests, etc.) — these inherit company access from their parent but
+-- don't independently check has_permission() for the child table's own
+-- module. Extending that is mechanical (same pattern, more tables) rather
+-- than a design gap, but wasn't done in this pass to keep the file legible.
 
 -- ============================================================
 -- Helper functions
@@ -72,6 +81,27 @@ as $$
   );
 $$;
 
+-- General-purpose permission check, now that db/schema.sql seeds every
+-- functional area's module (not just the original 7) — used below to
+-- enforce the actual view/add/edit/delete matrix from the Roles &
+-- Permission screen at the database layer, not just company-scoping.
+create or replace function has_permission(target_module text, target_action text)
+returns boolean
+language sql stable security definer
+set search_path = public
+as $$
+  select
+    exists (select 1 from public.user_roles ur join public.roles r on r.id = ur.role_id where ur.user_id = current_app_user_id() and r.is_system_role = true)
+    or exists (
+      select 1
+      from public.user_roles ur
+      join public.role_permissions rp on rp.role_id = ur.role_id
+      join public.permissions p on p.id = rp.permission_id
+      where ur.user_id = current_app_user_id()
+        and p.module = target_module and p.action = target_action
+    );
+$$;
+
 do $$
 declare
   t text;
@@ -96,25 +126,95 @@ end $$;
 -- Company-scoped tables — direct company_id column
 -- ============================================================
 
-do $$
-declare
-  t text;
-  company_scoped_tables text[] := array[
-    'org_units', 'locations', 'cost_centers', 'employees', 'projects',
-    'assets', 'software_licenses', 'data_centers', 'contracts',
-    'audit_sessions', 'purchase_orders', 'discovered_devices',
-    'automation_rules'
-  ];
-begin
-  foreach t in array company_scoped_tables loop
-    execute format('alter table public.%I enable row level security', t);
-    execute format('drop policy if exists company_scoped on public.%I', t);
-    execute format(
-      'create policy company_scoped on public.%I for all using (company_id = any(current_user_company_ids())) with check (company_id = any(current_user_company_ids()))',
-      t
-    );
-  end loop;
-end $$;
+-- ============================================================
+-- Company-scoped tables — direct company_id column.
+-- Each is mapped to the module it corresponds to in the Roles &
+-- Permission Matrix, and every action (view/add/edit/delete) is
+-- enforced here — this is the fine-grained enforcement the earlier
+-- version of this file said was still missing; it isn't anymore.
+-- Written out explicitly per table rather than looped: the module
+-- name varies per table in a way that isn't worth a dynamic-SQL
+-- abstraction for 13 tables — explicit and greppable beats clever.
+-- ============================================================
+
+alter table org_units enable row level security;
+alter table locations enable row level security;
+alter table cost_centers enable row level security;
+alter table projects enable row level security;
+alter table employees enable row level security;
+alter table assets enable row level security;
+alter table software_licenses enable row level security;
+alter table data_centers enable row level security;
+alter table contracts enable row level security;
+alter table audit_sessions enable row level security;
+alter table purchase_orders enable row level security;
+alter table discovered_devices enable row level security;
+alter table automation_rules enable row level security;
+
+create policy select_scoped on org_units for select using (company_id = any(current_user_company_ids()) and has_permission('settings', 'view'));
+create policy insert_scoped on org_units for insert with check (company_id = any(current_user_company_ids()) and has_permission('settings', 'add'));
+create policy update_scoped on org_units for update using (company_id = any(current_user_company_ids()) and has_permission('settings', 'edit'));
+create policy delete_scoped on org_units for delete using (company_id = any(current_user_company_ids()) and has_permission('settings', 'delete'));
+
+create policy select_scoped on locations for select using (company_id = any(current_user_company_ids()) and has_permission('settings', 'view'));
+create policy insert_scoped on locations for insert with check (company_id = any(current_user_company_ids()) and has_permission('settings', 'add'));
+create policy update_scoped on locations for update using (company_id = any(current_user_company_ids()) and has_permission('settings', 'edit'));
+create policy delete_scoped on locations for delete using (company_id = any(current_user_company_ids()) and has_permission('settings', 'delete'));
+
+create policy select_scoped on cost_centers for select using (company_id = any(current_user_company_ids()) and has_permission('settings', 'view'));
+create policy insert_scoped on cost_centers for insert with check (company_id = any(current_user_company_ids()) and has_permission('settings', 'add'));
+create policy update_scoped on cost_centers for update using (company_id = any(current_user_company_ids()) and has_permission('settings', 'edit'));
+create policy delete_scoped on cost_centers for delete using (company_id = any(current_user_company_ids()) and has_permission('settings', 'delete'));
+
+create policy select_scoped on projects for select using (company_id = any(current_user_company_ids()) and has_permission('settings', 'view'));
+create policy insert_scoped on projects for insert with check (company_id = any(current_user_company_ids()) and has_permission('settings', 'add'));
+create policy update_scoped on projects for update using (company_id = any(current_user_company_ids()) and has_permission('settings', 'edit'));
+create policy delete_scoped on projects for delete using (company_id = any(current_user_company_ids()) and has_permission('settings', 'delete'));
+
+create policy select_scoped on employees for select using (company_id = any(current_user_company_ids()) and has_permission('employees', 'view'));
+create policy insert_scoped on employees for insert with check (company_id = any(current_user_company_ids()) and has_permission('employees', 'add'));
+create policy update_scoped on employees for update using (company_id = any(current_user_company_ids()) and has_permission('employees', 'edit'));
+create policy delete_scoped on employees for delete using (company_id = any(current_user_company_ids()) and has_permission('employees', 'delete'));
+
+create policy select_scoped on assets for select using (company_id = any(current_user_company_ids()) and has_permission('hardware_assets', 'view'));
+create policy insert_scoped on assets for insert with check (company_id = any(current_user_company_ids()) and has_permission('hardware_assets', 'add'));
+create policy update_scoped on assets for update using (company_id = any(current_user_company_ids()) and has_permission('hardware_assets', 'edit'));
+create policy delete_scoped on assets for delete using (company_id = any(current_user_company_ids()) and has_permission('hardware_assets', 'delete'));
+
+create policy select_scoped on software_licenses for select using (company_id = any(current_user_company_ids()) and has_permission('software_licenses', 'view'));
+create policy insert_scoped on software_licenses for insert with check (company_id = any(current_user_company_ids()) and has_permission('software_licenses', 'add'));
+create policy update_scoped on software_licenses for update using (company_id = any(current_user_company_ids()) and has_permission('software_licenses', 'edit'));
+create policy delete_scoped on software_licenses for delete using (company_id = any(current_user_company_ids()) and has_permission('software_licenses', 'delete'));
+
+create policy select_scoped on data_centers for select using (company_id = any(current_user_company_ids()) and has_permission('network', 'view'));
+create policy insert_scoped on data_centers for insert with check (company_id = any(current_user_company_ids()) and has_permission('network', 'add'));
+create policy update_scoped on data_centers for update using (company_id = any(current_user_company_ids()) and has_permission('network', 'edit'));
+create policy delete_scoped on data_centers for delete using (company_id = any(current_user_company_ids()) and has_permission('network', 'delete'));
+
+create policy select_scoped on contracts for select using (company_id = any(current_user_company_ids()) and has_permission('contracts', 'view'));
+create policy insert_scoped on contracts for insert with check (company_id = any(current_user_company_ids()) and has_permission('contracts', 'add'));
+create policy update_scoped on contracts for update using (company_id = any(current_user_company_ids()) and has_permission('contracts', 'edit'));
+create policy delete_scoped on contracts for delete using (company_id = any(current_user_company_ids()) and has_permission('contracts', 'delete'));
+
+create policy select_scoped on audit_sessions for select using (company_id = any(current_user_company_ids()) and has_permission('inventory_audit', 'view'));
+create policy insert_scoped on audit_sessions for insert with check (company_id = any(current_user_company_ids()) and has_permission('inventory_audit', 'add'));
+create policy update_scoped on audit_sessions for update using (company_id = any(current_user_company_ids()) and has_permission('inventory_audit', 'edit'));
+create policy delete_scoped on audit_sessions for delete using (company_id = any(current_user_company_ids()) and has_permission('inventory_audit', 'delete'));
+
+create policy select_scoped on purchase_orders for select using (company_id = any(current_user_company_ids()) and has_permission('procurement', 'view'));
+create policy insert_scoped on purchase_orders for insert with check (company_id = any(current_user_company_ids()) and has_permission('procurement', 'add'));
+create policy update_scoped on purchase_orders for update using (company_id = any(current_user_company_ids()) and has_permission('procurement', 'edit'));
+create policy delete_scoped on purchase_orders for delete using (company_id = any(current_user_company_ids()) and has_permission('procurement', 'delete'));
+
+create policy select_scoped on discovered_devices for select using (company_id = any(current_user_company_ids()) and has_permission('network', 'view'));
+create policy insert_scoped on discovered_devices for insert with check (company_id = any(current_user_company_ids()) and has_permission('network', 'add'));
+create policy update_scoped on discovered_devices for update using (company_id = any(current_user_company_ids()) and has_permission('network', 'edit'));
+create policy delete_scoped on discovered_devices for delete using (company_id = any(current_user_company_ids()) and has_permission('network', 'delete'));
+
+create policy select_scoped on automation_rules for select using (company_id = any(current_user_company_ids()) and has_permission('automation_rules', 'view'));
+create policy insert_scoped on automation_rules for insert with check (company_id = any(current_user_company_ids()) and has_permission('automation_rules', 'add'));
+create policy update_scoped on automation_rules for update using (company_id = any(current_user_company_ids()) and has_permission('automation_rules', 'edit'));
+create policy delete_scoped on automation_rules for delete using (company_id = any(current_user_company_ids()) and has_permission('automation_rules', 'delete'));
 
 -- ============================================================
 -- Child tables — no company_id of their own, scoped via their parent

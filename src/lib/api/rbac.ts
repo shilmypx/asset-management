@@ -3,7 +3,7 @@ import { supabase, isSupabaseConfigured } from "../supabaseClient";
 export type Role = { id: string; name: string; description: string | null; is_system_role: boolean };
 export type Permission = { id: string; module: string; action: string };
 
-const MODULES = ["dashboard", "employees", "hardware_assets", "software_licenses", "incidents", "reports", "settings"];
+const MODULES = ["dashboard", "employees", "hardware_assets", "software_licenses", "incidents", "reports", "settings", "procurement", "network", "repairs", "contracts", "inventory_audit", "requests", "automation_rules"];
 const ACTIONS = ["view", "add", "edit", "delete", "approve", "export", "print", "import"];
 
 // Demo-mode data — mirrors the seed in db/schema.sql so the matrix looks
