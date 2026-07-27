@@ -21,6 +21,9 @@ import Repairs from "./pages/Repairs";
 import Contracts from "./pages/Contracts";
 import ITSM from "./pages/ITSM";
 import InventoryAudit from "./pages/InventoryAudit";
+import Reports from "./pages/Reports";
+import BarcodePrinting from "./pages/BarcodePrinting";
+import AutomationRulesAdmin from "./pages/admin/AutomationRules";
 
 const TITLES: Record<string, string> = {
   "/": "Dashboard",
@@ -36,6 +39,9 @@ const TITLES: Record<string, string> = {
   "/contracts": "Contracts & Warranty",
   "/itsm": "Incidents / Problems / Changes",
   "/audit": "Inventory Audit",
+  "/reports": "Reports",
+  "/barcodes": "Barcode Printing",
+  "/admin/automation-rules": "Admin · Automation Rules",
   "/admin/companies": "Admin · Companies",
   "/admin/org-units": "Admin · Org Units",
   "/admin/roles": "Admin · Roles & Permissions",
@@ -76,6 +82,9 @@ export default function App() {
           <Route path="/contracts" element={<Contracts />} />
           <Route path="/itsm" element={<ITSM />} />
           <Route path="/audit" element={<InventoryAudit />} />
+          <Route path="/reports" element={<Reports />} />
+          <Route path="/barcodes" element={<BarcodePrinting />} />
+          <Route path="/admin/automation-rules" element={<AutomationRulesAdmin />} />
           <Route path="/admin/companies" element={<CompaniesAdmin />} />
           <Route path="/admin/org-units" element={<OrgUnitsAdmin />} />
           <Route path="/admin/roles" element={<RolesAdmin />} />

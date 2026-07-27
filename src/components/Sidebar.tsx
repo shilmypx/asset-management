@@ -1,7 +1,7 @@
 import { ScanLine } from "lucide-react";
 import React from "react";
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, Building2, Users, Laptop, Settings, Network, ShieldCheck, UserCog, ListTree, MapPin, ScanBarcode, ShoppingCart, UserCheck, KeyRound, Router, Wrench, FileText, AlertCircle } from "lucide-react";
+import { LayoutDashboard, Building2, Users, Laptop, Settings, Network, ShieldCheck, UserCog, ListTree, MapPin, ScanBarcode, ShoppingCart, UserCheck, KeyRound, Router, Wrench, FileText, AlertCircle, BarChart3, Printer, Zap } from "lucide-react";
 
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
@@ -17,12 +17,15 @@ const NAV = [
   { to: "/contracts", label: "Contracts & Warranty", icon: FileText },
   { to: "/itsm", label: "Incidents / Problems / Changes", icon: AlertCircle },
   { to: "/audit", label: "Inventory Audit", icon: ScanLine },
+  { to: "/reports", label: "Reports", icon: BarChart3 },
+  { to: "/barcodes", label: "Barcode Printing", icon: Printer },
 ];
 
 const ADMIN_NAV = [
   { to: "/admin/companies", label: "Companies", icon: Building2 },
   { to: "/admin/org-units", label: "Org Units", icon: Network },
   { to: "/admin/roles", label: "Roles & Permissions", icon: ShieldCheck },
+  { to: "/admin/automation-rules", label: "Automation Rules", icon: Zap },
   { to: "/admin/users", label: "Users", icon: UserCog },
   { to: "/admin/master-data", label: "Master Data", icon: ListTree },
   { to: "/admin/org-settings", label: "Depts / Locations / Cost Centers", icon: MapPin },
