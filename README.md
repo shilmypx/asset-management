@@ -38,6 +38,7 @@ Opens at `http://localhost:5173` running against in-memory mock data. Fine for b
 
 | Module | Status |
 |---|---|
+| **Login / session** | ✅ Real Supabase Auth sign-in, gates the whole app when a backend is connected |
 | Org Structure, Employees, Hardware Assets, Dashboard | ✅ Live/mock data |
 | Companies, Org Units, Master Data, Departments/Locations/Cost Centers | ✅ Admin CRUD |
 | Roles & Permission Matrix, Users | ✅ Admin CRUD (auth via Supabase Auth, not this table) |
@@ -56,7 +57,7 @@ Opens at `http://localhost:5173` running against in-memory mock data. Fine for b
 
 ### Module notes worth knowing before you build further
 
-- **Auth**: the `users` table is app-level data only (role links, employee link, lock status). Real credentials live in Supabase's built-in `auth.users`. There's no login screen yet — several screens (Self-Service, Check-Out/Check-In) use a plain picker as a stand-in for "who's logged in," flagged inline in the UI rather than hidden.
+- **Auth**: real Supabase Auth sign-in now gates the app — when `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` are set, you'll see a login screen instead of the app until you sign in; demo mode (no env vars) skips it entirely since there's no backend to authenticate against. The `users` table is still app-level data only (role links, employee link, lock status) — it's linked to the real `auth.users` row by matching email. **To create someone's first login**: Supabase dashboard → Authentication → Users → Invite user (sends them a password-setup email) — that's the credential half; separately, use the Users admin screen in-app to create their app-level profile (employee link, role) with a matching email. Self-Service now shows "Signed in as [name]" automatically once your account is linked to an employee record this way — the picker only appears as a fallback in demo mode or if the link isn't set up yet.
 - **Check-Out/Check-In**: checking out sets the asset's owner + status and logs an `asset_assignments` row; checking in closes that row and returns the asset to Available — or leaves it flagged if condition is Damaged/Needs Repair, which is where Repair & Maintenance picks up.
 - **Repair & Maintenance**: the one module with real state-machine logic — issuing a temporary replacement (internal stock or vendor loaner) hands the original's assignment to the replacement; completing the repair auto-recovers it.
 - **Procurement**: receiving a PO line while it's "ordered" creates a real `assets` row and links it back — an actual request-to-inventory loop, not just a status tracker.
@@ -65,4 +66,4 @@ Opens at `http://localhost:5173` running against in-memory mock data. Fine for b
 - **Reports**: CSV export only — no PDF/Excel export or scheduled email delivery yet.
 - **Demo-mode writes**: most admin writes are blocked without Supabase connected (with a clear disabled-state tooltip). A few low-stakes ones — Self-Service requests, Problems/Changes, Inventory Audit sessions — work against an in-memory mock store even in demo mode, since they're safe to click through without a backend.
 
-**What's genuinely still missing for production use:** a real login screen, a scheduled job runner for notifications/automation rules, PDF/Excel report export, and a visual (not list-form) relationship graph.
+**What's genuinely still missing for production use:** a scheduled job runner for notifications/automation rules, PDF/Excel report export, and a visual (not list-form) relationship graph. (Check-Out/Check-In's employee picker is intentional, not a gap — an IT tech assigning a laptop to someone else is supposed to pick who, not use their own identity.)

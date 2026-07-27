@@ -1,6 +1,8 @@
 import { ScanLine } from "lucide-react";
 import React from "react";
 import { NavLink } from "react-router-dom";
+import { LogOut } from "lucide-react";
+import { useAuth } from "../lib/AuthGate";
 import { LayoutDashboard, Building2, Users, Laptop, Settings, Network, ShieldCheck, UserCog, ListTree, MapPin, ScanBarcode, ShoppingCart, UserCheck, KeyRound, Router, Wrench, FileText, AlertCircle, BarChart3, Printer, Zap } from "lucide-react";
 
 const NAV = [
@@ -32,6 +34,7 @@ const ADMIN_NAV = [
 ];
 
 export default function Sidebar() {
+  const { profile, signOut, isSupabaseConfigured } = useAuth();
   return (
     <aside className="w-60 shrink-0 h-full flex flex-col" style={{ backgroundColor: "#12151C" }}>
       <div className="px-5 py-5 flex items-center gap-2 border-b border-white/10">
@@ -86,8 +89,22 @@ export default function Sidebar() {
           })}
         </div>
       </nav>
-      <div className="px-4 py-4 border-t border-white/10 text-[11px] text-white/30">
-        ITAMS v0.1 · Karawa Group
+      <div className="px-4 py-4 border-t border-white/10">
+        {profile ? (
+          <div className="flex items-center justify-between">
+            <div className="text-xs leading-tight">
+              <div className="text-white/70">{profile.employeeName ?? profile.email}</div>
+              <div className="text-white/30">{profile.roleNames.join(", ") || "No role assigned"}</div>
+            </div>
+            <button onClick={signOut} title="Sign out" className="text-white/40 hover:text-white/70">
+              <LogOut size={14} />
+            </button>
+          </div>
+        ) : (
+          <div className="text-[11px] text-white/30">
+            {isSupabaseConfigured ? "ITAMS v0.1 · Karawa Group" : "Demo mode · no backend connected"}
+          </div>
+        )}
       </div>
     </aside>
   );

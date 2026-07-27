@@ -6,6 +6,7 @@ import { fetchAssets } from "../lib/api/assets";
 import { fetchLookup } from "../lib/api/lookups";
 import { fetchMyRequests, fetchAllRequests, submitRequest, decideRequest, AssetRequest, RequestType } from "../lib/api/selfService";
 import { isSupabaseConfigured } from "../lib/supabaseClient";
+import { useAuth } from "../lib/AuthGate";
 import { StatusPill, Tag } from "../components/Ui";
 
 const STATUS_TO_PILL: Record<string, string> = { submitted: "Reserved", approved: "Available", rejected: "Lost", fulfilled: "Assigned" };
@@ -13,7 +14,7 @@ const STATUS_TO_PILL: Record<string, string> = { submitted: "Reserved", approved
 export default function SelfService() {
   const [view, setView] = useState<"portal" | "approvals">("portal");
   const [employees, setEmployees] = useState<Employee[]>([]);
-  const [employeeIdx, setEmployeeIdx] = useState(0); // stand-in for a logged-in session
+  const [employeeIdx, setEmployeeIdx] = useState(0); // fallback stand-in when no real session identity is available
   const [assets, setAssets] = useState<Asset[]>([]);
   const [myRequests, setMyRequests] = useState<AssetRequest[]>([]);
   const [allRequests, setAllRequests] = useState<AssetRequest[]>([]);
@@ -29,7 +30,9 @@ export default function SelfService() {
     fetchLookup("asset_categories").then((rows) => setCategories(rows.map((r) => ({ id: r.id, name: r.name }))));
   }, []);
 
-  const currentEmployee = employees[employeeIdx];
+  const { profile } = useAuth();
+  const sessionEmployee = profile?.employeeId ? employees.find((e) => e.id === profile.employeeId) : null;
+  const currentEmployee = sessionEmployee ?? employees[employeeIdx];
 
   useEffect(() => {
     if (currentEmployee) fetchMyRequests(currentEmployee.id).then(setMyRequests);
@@ -80,16 +83,22 @@ export default function SelfService() {
 
       {view === "portal" && (
         <>
-          <div className="flex items-start gap-2 text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-md px-3 py-2 mb-4">
-            <Info size={13} className="mt-0.5 shrink-0" />
-            <span>No login screen is wired up yet, so this picker stands in for "who's signed in" — a real build would pull this from the Supabase Auth session instead.</span>
-          </div>
-          <div className="mb-4">
-            <label className="text-xs text-slate-500 block mb-1">Viewing as</label>
-            <select value={employeeIdx} onChange={(e) => setEmployeeIdx(Number(e.target.value))} className="border border-slate-200 rounded-md px-3 py-1.5 text-sm">
-              {employees.map((e, i) => <option key={e.id} value={i}>{e.name} — {e.company}</option>)}
-            </select>
-          </div>
+          {sessionEmployee ? (
+            <div className="text-sm text-slate-600 mb-4">Signed in as <span className="font-medium text-slate-800">{sessionEmployee.name}</span> — {sessionEmployee.company}</div>
+          ) : (
+            <>
+              <div className="flex items-start gap-2 text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-md px-3 py-2 mb-4">
+                <Info size={13} className="mt-0.5 shrink-0" />
+                <span>{isSupabaseConfigured ? "Signed in, but your account isn't linked to an employee record — using a picker instead." : "Demo mode has no real session, so this picker stands in for \"who's signed in.\""}</span>
+              </div>
+              <div className="mb-4">
+                <label className="text-xs text-slate-500 block mb-1">Viewing as</label>
+                <select value={employeeIdx} onChange={(e) => setEmployeeIdx(Number(e.target.value))} className="border border-slate-200 rounded-md px-3 py-1.5 text-sm">
+                  {employees.map((e, i) => <option key={e.id} value={i}>{e.name} — {e.company}</option>)}
+                </select>
+              </div>
+            </>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-4">
