@@ -110,7 +110,8 @@ declare
     'license_types', 'subscription_types', 'currencies', 'depreciation_methods',
     'employment_types', 'vendors', 'barcode_prefixes', 'incident_categories',
     'priorities', 'severities', 'departments', 'roles', 'permissions',
-    'notification_templates', 'custom_field_definitions', 'depreciation_settings'
+    'notification_templates', 'custom_field_definitions', 'depreciation_settings',
+    'label_print_settings', 'notification_routing', 'approval_rules'
   ];
 begin
   foreach t in array lookup_tables loop
@@ -121,6 +122,15 @@ begin
     execute format('create policy lookup_write on public.%I for all using (has_settings_write()) with check (has_settings_write())', t);
   end loop;
 end $$;
+
+-- hr_sync_settings holds an API key — unlike the other config tables
+-- above, this is NOT readable by every authenticated user, only by
+-- someone with settings write access. If you need employees to see
+-- "sync mode: manual" without seeing the key, split that into its own
+-- table later rather than loosening this policy.
+alter table hr_sync_settings enable row level security;
+create policy hr_sync_admin_only on hr_sync_settings for all
+  using (has_settings_write()) with check (has_settings_write());
 
 -- ============================================================
 -- Company-scoped tables — direct company_id column

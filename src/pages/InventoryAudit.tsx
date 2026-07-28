@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { Plus, Database, CircleDot, ScanLine, CheckCircle2, AlertTriangle, HelpCircle, Ban } from "lucide-react";
+import { Plus, Database, CircleDot, ScanLine, CheckCircle2, AlertTriangle, HelpCircle, Ban, Camera } from "lucide-react";
 import { fetchSessions, startSession, fetchScans, scanBarcode, completeSession, AuditSession, Scan } from "../lib/api/audit";
 import { fetchCompanies, CompanyRow } from "../lib/api/org";
 import { fetchAssets } from "../lib/api/assets";
 import { Asset } from "../lib/mockData";
 import { isSupabaseConfigured } from "../lib/supabaseClient";
 import { Tag } from "../components/Ui";
+import CameraScanner from "../components/CameraScanner";
 
 const RESULT_STYLE: Record<string, { color: string; icon: any }> = {
   matched: { color: "text-emerald-600", icon: CheckCircle2 },
@@ -22,6 +23,7 @@ export default function InventoryAudit() {
   const [companyId, setCompanyId] = useState("");
   const [assets, setAssets] = useState<Asset[]>([]);
   const [barcodeInput, setBarcodeInput] = useState("");
+  const [showScanner, setShowScanner] = useState(false);
   const [lastResult, setLastResult] = useState<string | null>(null);
   const [missingReport, setMissingReport] = useState<Asset[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -45,16 +47,20 @@ export default function InventoryAudit() {
     } catch (err: any) { setError(err.message ?? "Failed to start session."); }
   }
 
-  async function handleScan(e: React.FormEvent) {
-    e.preventDefault();
-    if (!active || !barcodeInput) return;
+  async function recordScan(code: string) {
+    if (!active || !code) return;
     setError(null);
     try {
-      const result = await scanBarcode(active.id, barcodeInput, expectedAssets);
+      const result = await scanBarcode(active.id, code, expectedAssets);
       setLastResult(result);
       setBarcodeInput("");
       await fetchScans(active.id).then(setScans);
     } catch (err: any) { setError(err.message ?? "Failed to record scan."); }
+  }
+
+  async function handleScan(e: React.FormEvent) {
+    e.preventDefault();
+    await recordScan(barcodeInput);
   }
 
   async function handleComplete() {
@@ -104,8 +110,15 @@ export default function InventoryAudit() {
           <form onSubmit={handleScan} className="flex items-center gap-2 mb-4">
             <ScanLine size={16} className="text-slate-400" />
             <input autoFocus value={barcodeInput} onChange={(e) => setBarcodeInput(e.target.value)} placeholder="Scan or type barcode, e.g. KWA-LAP-00231" className="flex-1 border border-slate-200 rounded-md px-3 py-2 text-sm font-mono" />
+            <button type="button" onClick={() => setShowScanner(true)} className="flex items-center gap-1 text-sm border border-slate-200 rounded-md px-3 py-2 text-slate-600 hover:bg-slate-50"><Camera size={14} /> Camera</button>
             <button className="text-sm bg-accent text-white px-3 py-2 rounded-md">Record</button>
           </form>
+          {showScanner && (
+            <CameraScanner
+              onClose={() => setShowScanner(false)}
+              onDetected={(code) => { setShowScanner(false); recordScan(code); }}
+            />
+          )}
           {lastResult && (
             <div className={`text-sm mb-3 flex items-center gap-1.5 ${RESULT_STYLE[lastResult].color}`}>
               {React.createElement(RESULT_STYLE[lastResult].icon, { size: 14 })}

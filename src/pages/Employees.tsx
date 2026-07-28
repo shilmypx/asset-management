@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { X, Database, CircleDot } from "lucide-react";
 import { Employee } from "../lib/mockData";
 import { fetchEmployees } from "../lib/api/employees";
@@ -42,8 +43,18 @@ function Detail({ emp, onClose }: { emp: Employee; onClose: () => void }) {
 }
 
 export default function Employees({ company, search }: { company: string; search: string }) {
+  const location = useLocation();
   const [employees, setEmployees] = useState<Employee[] | null>(null);
   const [selected, setSelected] = useState<Employee | null>(null);
+
+  useEffect(() => {
+    const openId = (location.state as any)?.openEmployeeId;
+    if (openId && employees) {
+      const match = employees.find((e) => e.id === openId);
+      if (match) setSelected(match);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [employees, location.state]);
 
   useEffect(() => {
     fetchEmployees().then(setEmployees);

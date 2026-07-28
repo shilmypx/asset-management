@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { ScanBarcode, ArrowRightLeft, Database, CircleDot, CheckCircle2 } from "lucide-react";
+import { useLocation } from "react-router-dom";
+import { ScanBarcode, ArrowRightLeft, Database, CircleDot, CheckCircle2, Camera } from "lucide-react";
 import { Asset, Employee } from "../lib/mockData";
 import { fetchAssets } from "../lib/api/assets";
 import { fetchEmployees } from "../lib/api/employees";
@@ -7,11 +8,15 @@ import { fetchLookup } from "../lib/api/lookups";
 import { checkOutAsset, checkInAsset } from "../lib/api/checkout";
 import { isSupabaseConfigured } from "../lib/supabaseClient";
 import { StatusPill, Tag } from "../components/Ui";
+import CameraScanner from "../components/CameraScanner";
 
 type Tab = "checkout" | "checkin";
 
 export default function CheckOutCheckIn() {
-  const [tab, setTab] = useState<Tab>("checkout");
+  const location = useLocation();
+  const prefill = location.state as { prefillAssetId?: string; tab?: Tab } | null;
+  const [tab, setTab] = useState<Tab>(prefill?.tab ?? "checkout");
+  const [showScanner, setShowScanner] = useState(false);
   const [assets, setAssets] = useState<Asset[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [statusIds, setStatusIds] = useState<Record<string, string>>({});
@@ -35,6 +40,11 @@ export default function CheckOutCheckIn() {
       setStatusIds(map);
     });
   }, []);
+
+  useEffect(() => {
+    if (prefill?.prefillAssetId) setSelectedAssetId(prefill.prefillAssetId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assets.length]);
 
   const availableAssets = assets.filter((a) => a.status === "Available");
   const assignedAssets = assets.filter((a) => a.status === "Assigned");
@@ -98,10 +108,13 @@ export default function CheckOutCheckIn() {
           </div>
           <div>
             <label className="text-xs text-slate-500 block mb-1">Select asset (barcode-scan target)</label>
-            <select required value={selectedAssetId} onChange={(e) => setSelectedAssetId(e.target.value)} className="w-full border border-slate-200 rounded-md px-3 py-2 text-sm">
-              <option value="">Select…</option>
-              {availableAssets.map((a) => <option key={a.id} value={a.id}>{a.tag} — {a.manufacturer} {a.model}</option>)}
-            </select>
+            <div className="flex items-center gap-2">
+              <select required value={selectedAssetId} onChange={(e) => setSelectedAssetId(e.target.value)} className="flex-1 border border-slate-200 rounded-md px-3 py-2 text-sm">
+                <option value="">Select…</option>
+                {availableAssets.map((a) => <option key={a.id} value={a.id}>{a.tag} — {a.manufacturer} {a.model}</option>)}
+              </select>
+              <button type="button" onClick={() => setShowScanner(true)} className="flex items-center gap-1 text-xs border border-slate-200 rounded-md px-3 py-2 text-slate-600 hover:bg-slate-50 shrink-0"><Camera size={13} /> Scan</button>
+            </div>
             {availableAssets.length === 0 && <div className="text-xs text-slate-400 mt-1">No available assets to check out right now.</div>}
           </div>
           {selectedAssetId && (
@@ -119,10 +132,13 @@ export default function CheckOutCheckIn() {
         <form onSubmit={handleCheckIn} className="bg-white border border-slate-200 rounded-lg p-5 space-y-4">
           <div>
             <label className="text-xs text-slate-500 block mb-1">Scan / select asset</label>
-            <select required value={selectedAssetId} onChange={(e) => setSelectedAssetId(e.target.value)} className="w-full border border-slate-200 rounded-md px-3 py-2 text-sm">
-              <option value="">Select…</option>
-              {assignedAssets.map((a) => <option key={a.id} value={a.id}>{a.tag} — {a.manufacturer} {a.model} (with {a.owner})</option>)}
-            </select>
+            <div className="flex items-center gap-2">
+              <select required value={selectedAssetId} onChange={(e) => setSelectedAssetId(e.target.value)} className="flex-1 border border-slate-200 rounded-md px-3 py-2 text-sm">
+                <option value="">Select…</option>
+                {assignedAssets.map((a) => <option key={a.id} value={a.id}>{a.tag} — {a.manufacturer} {a.model} (with {a.owner})</option>)}
+              </select>
+              <button type="button" onClick={() => setShowScanner(true)} className="flex items-center gap-1 text-xs border border-slate-200 rounded-md px-3 py-2 text-slate-600 hover:bg-slate-50 shrink-0"><Camera size={13} /> Scan</button>
+            </div>
             {assignedAssets.length === 0 && <div className="text-xs text-slate-400 mt-1">No assigned assets to check in right now.</div>}
           </div>
           <div>
@@ -155,6 +171,19 @@ export default function CheckOutCheckIn() {
 
       {success && <div className="flex items-center gap-1.5 text-sm text-emerald-600 mt-3"><CheckCircle2 size={14} /> {success}</div>}
       {error && <div className="text-sm text-red-500 mt-3">{error}</div>}
+
+      {showScanner && (
+        <CameraScanner
+          onClose={() => setShowScanner(false)}
+          onDetected={(code) => {
+            const pool = tab === "checkout" ? availableAssets : assignedAssets;
+            const match = pool.find((a) => a.tag === code);
+            if (match) setSelectedAssetId(match.id);
+            else setError(`Scanned "${code}" doesn't match any ${tab === "checkout" ? "available" : "assigned"} asset.`);
+            setShowScanner(false);
+          }}
+        />
+      )}
     </div>
   );
 }

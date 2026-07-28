@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { X, ChevronRight, Barcode, Package, Database, CircleDot } from "lucide-react";
 import { Asset } from "../lib/mockData";
 import { fetchAssets } from "../lib/api/assets";
@@ -76,8 +77,18 @@ function Detail({ asset, allAssets, onClose, onOpenChild }: { asset: Asset; allA
 }
 
 export default function Assets({ company, search }: { company: string; search: string }) {
+  const location = useLocation();
   const [assets, setAssets] = useState<Asset[] | null>(null);
   const [selected, setSelected] = useState<Asset | null>(null);
+
+  useEffect(() => {
+    const openId = (location.state as any)?.openAssetId;
+    if (openId && assets) {
+      const match = assets.find((a) => a.id === openId);
+      if (match) setSelected(match);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assets, location.state]);
   const [categoryFilter, setCategoryFilter] = useState("All Categories");
 
   useEffect(() => {

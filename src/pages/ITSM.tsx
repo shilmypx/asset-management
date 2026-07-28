@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { Plus, Database, CircleDot, AlertCircle, X } from "lucide-react";
 import {
   fetchIncidents, fetchTimeline, createIncident, addTimelineEntry, updateIncidentStatus,
@@ -14,17 +15,17 @@ import { Tag } from "../components/Ui";
 const PRIORITY_STYLE: Record<string, string> = { High: "bg-red-50 text-red-500", Medium: "bg-amber-50 text-amber-600", Low: "bg-slate-100 text-slate-500" };
 const STATUS_STYLE: Record<string, string> = { Open: "bg-slate-100 text-slate-500", "In Progress": "bg-amber-50 text-amber-600", Resolved: "bg-emerald-50 text-emerald-600", Closed: "bg-slate-100 text-slate-400" };
 
-function IncidentsTab() {
+function IncidentsTab({ prefillAssetId }: { prefillAssetId?: string }) {
   const [incidents, setIncidents] = useState<Incident[] | null>(null);
   const [selected, setSelected] = useState<Incident | null>(null);
   const [timeline, setTimeline] = useState<TimelineEntry[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [assets, setAssets] = useState<Asset[]>([]);
   const [priorities, setPriorities] = useState<{ id: string; name: string }[]>([]);
-  const [showAdd, setShowAdd] = useState(false);
+  const [showAdd, setShowAdd] = useState(!!prefillAssetId);
   const [incidentNumber, setIncidentNumber] = useState("");
   const [employeeId, setEmployeeId] = useState("");
-  const [assetId, setAssetId] = useState("");
+  const [assetId, setAssetId] = useState(prefillAssetId ?? "");
   const [priorityId, setPriorityId] = useState("");
   const [newNote, setNewNote] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -241,7 +242,9 @@ function ChangesTab() {
 }
 
 export default function ITSM() {
-  const [tab, setTab] = useState<"incidents" | "problems" | "changes">("incidents");
+  const location = useLocation();
+  const navState = location.state as { tab?: "incidents" | "problems" | "changes"; prefillAssetId?: string } | null;
+  const [tab, setTab] = useState<"incidents" | "problems" | "changes">(navState?.tab ?? "incidents");
   return (
     <div className="p-8">
       <div className="flex items-center gap-2 mb-4 border-b border-slate-200">
@@ -256,7 +259,7 @@ export default function ITSM() {
           )}
         </div>
       </div>
-      {tab === "incidents" && <IncidentsTab />}
+      {tab === "incidents" && <IncidentsTab prefillAssetId={navState?.prefillAssetId} />}
       {tab === "problems" && <ProblemsTab />}
       {tab === "changes" && <ChangesTab />}
     </div>

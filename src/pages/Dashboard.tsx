@@ -5,6 +5,7 @@ import { Asset, STATUS_COLOR } from "../lib/mockData";
 import { fetchAssets } from "../lib/api/assets";
 import { isSupabaseConfigured } from "../lib/supabaseClient";
 import { Tag } from "../components/Ui";
+import GlobalSearch from "../components/GlobalSearch";
 
 function KpiCard({ label, value, icon: Icon, accent }: { label: string; value: number | string; icon: any; accent?: string }) {
   return (
@@ -53,6 +54,7 @@ export default function Dashboard() {
 
   return (
     <div className="p-8 space-y-6">
+      <GlobalSearch />
       <div className="flex justify-end -mt-2">
         {isSupabaseConfigured ? (
           <span className="flex items-center gap-1 text-xs text-accent-dark"><Database size={12} /> Live — connected to Supabase</span>
