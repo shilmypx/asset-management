@@ -3,7 +3,7 @@ import React from "react";
 import { NavLink } from "react-router-dom";
 import { LogOut } from "lucide-react";
 import { useAuth } from "../lib/AuthGate";
-import { LayoutDashboard, Building2, Users, Laptop, Settings, Network, ShieldCheck, UserCog, ListTree, MapPin, ScanBarcode, ShoppingCart, UserCheck, KeyRound, Router, Wrench, FileText, AlertCircle, BarChart3, Printer, Zap } from "lucide-react";
+import { LayoutDashboard, Building2, Users, Laptop, Settings, Network, ShieldCheck, UserCog, ListTree, MapPin, SlidersHorizontal, ScanBarcode, ShoppingCart, UserCheck, KeyRound, Router, Wrench, FileText, AlertCircle, BarChart3, Printer, Zap } from "lucide-react";
 
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
@@ -29,6 +29,7 @@ const ADMIN_NAV = [
   { to: "/admin/roles", label: "Roles & Permissions", icon: ShieldCheck },
   { to: "/admin/automation-rules", label: "Automation Rules", icon: Zap },
   { to: "/admin/users", label: "Users", icon: UserCog },
+  { to: "/admin/configuration", label: "Configuration", icon: SlidersHorizontal },
   { to: "/admin/master-data", label: "Master Data", icon: ListTree },
   { to: "/admin/org-settings", label: "Depts / Locations / Cost Centers", icon: MapPin },
 ];

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Database, CircleDot, Save, Info, Printer, Mail, CheckSquare, Plug } from "lucide-react";
+import { Database, CircleDot, Save, Info, Printer, Mail, CheckSquare, Plug, ListChecks } from "lucide-react";
 import {
   fetchHrSyncSettings, saveHrSyncSettings, HrSyncSettings,
   fetchLabelSettings, saveLabelSettings, LabelPrintSettings,
@@ -10,7 +10,7 @@ import { fetchRoles, Role } from "../../lib/api/rbac";
 import { fetchUsers, UserRow } from "../../lib/api/users";
 import { isSupabaseConfigured } from "../../lib/supabaseClient";
 
-type Tab = "integrations" | "barcode" | "notifications" | "approvals";
+type Tab = "integrations" | "barcode" | "notifications" | "approvals" | "master_data";
 
 const EVENT_LABELS: Record<string, string> = {
   renewal: "Subscription/license renewal", warranty_expiry: "Warranty expiry", maintenance_due: "Maintenance due",
@@ -329,6 +329,35 @@ function ApprovalsTab() {
   );
 }
 
+function MasterDataTab() {
+  const links = [
+    { to: "/admin/master-data", label: "Categories, Manufacturers, Statuses, License & Subscription Types, Currencies, Employment Types, Vendors", note: "One screen, table selector at the top" },
+    { to: "/admin/org-settings", label: "Departments, Locations, Cost Centers", note: "Company-scoped, tabbed" },
+    { to: "/admin/companies", label: "Companies", note: "Karawa + sister companies" },
+    { to: "/admin/org-units", label: "Org Units", note: "Branches / business units / divisions" },
+    { to: "/admin/roles", label: "Roles & Permission Matrix", note: "Controls what shows up under Settings elsewhere" },
+  ];
+  return (
+    <div className="max-w-2xl">
+      <div className="flex items-start gap-2 text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-md px-3 py-2 mb-4">
+        <Info size={13} className="mt-0.5 shrink-0" />
+        <span>These already exist as their own screens (each dropdown type has its own add/edit form and validation) rather than being rebuilt here — this tab is just a map so "all master data" has one place to start from.</span>
+      </div>
+      <div className="space-y-2">
+        {links.map((l) => (
+          <a key={l.to} href={l.to} className="flex items-center justify-between border border-slate-200 rounded-md px-4 py-3 hover:bg-slate-50 bg-white">
+            <div>
+              <div className="text-sm font-medium text-slate-800">{l.label}</div>
+              <div className="text-xs text-slate-400">{l.note}</div>
+            </div>
+            <span className="text-xs text-accent-dark">Open →</span>
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function Configuration() {
   const [tab, setTab] = useState<Tab>("integrations");
 
@@ -337,6 +366,7 @@ export default function Configuration() {
     { id: "barcode", label: "Barcode / Label Printing", icon: Printer },
     { id: "notifications", label: "Email Notifications", icon: Mail },
     { id: "approvals", label: "Approvals", icon: CheckSquare },
+    { id: "master_data", label: "Master Data", icon: ListChecks },
   ];
 
   return (
@@ -359,6 +389,7 @@ export default function Configuration() {
       {tab === "barcode" && <BarcodeTab />}
       {tab === "notifications" && <NotificationsTab />}
       {tab === "approvals" && <ApprovalsTab />}
+      {tab === "master_data" && <MasterDataTab />}
     </div>
   );
 }

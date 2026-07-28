@@ -10,6 +10,7 @@ import CompaniesAdmin from "./pages/admin/Companies";
 import OrgUnitsAdmin from "./pages/admin/OrgUnits";
 import RolesAdmin from "./pages/admin/Roles";
 import UsersAdmin from "./pages/admin/Users";
+import Configuration from "./pages/admin/Configuration";
 import MasterDataAdmin from "./pages/admin/MasterData";
 import OrgSettings from "./pages/admin/OrgSettings";
 import CheckOutCheckIn from "./pages/CheckOutCheckIn";
@@ -46,6 +47,7 @@ const TITLES: Record<string, string> = {
   "/admin/org-units": "Admin · Org Units",
   "/admin/roles": "Admin · Roles & Permissions",
   "/admin/users": "Admin · Users",
+  "/admin/configuration": "Admin · Configuration",
   "/admin/master-data": "Admin · Master Data",
   "/admin/org-settings": "Admin · Departments, Locations & Cost Centers",
 };
@@ -89,6 +91,7 @@ export default function App() {
           <Route path="/admin/org-units" element={<OrgUnitsAdmin />} />
           <Route path="/admin/roles" element={<RolesAdmin />} />
           <Route path="/admin/users" element={<UsersAdmin />} />
+          <Route path="/admin/configuration" element={<Configuration />} />
           <Route path="/admin/master-data" element={<MasterDataAdmin />} />
           <Route path="/admin/org-settings" element={<OrgSettings />} />
         </Routes>
