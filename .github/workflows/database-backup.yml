@@ -1,0 +1,49 @@
+name: Database backup
+
+on:
+  schedule:
+    # Runs every hour; scripts/backup-database.mjs decides whether it's
+    # actually time to back up based on backup_settings (frequency +
+    # scheduled_time + last_backup_at). This is what lets the
+    # Configuration page's schedule settings actually mean something —
+    # a static cron here can't read "every 4 hours starting from
+    # whenever the admin last changed it" on its own.
+    - cron: "0 * * * *"
+  workflow_dispatch:
+    inputs:
+      trigger_type:
+        description: "manual (Instant Backup button) or leave blank for a normal scheduled-check run"
+        required: false
+        default: "scheduled"
+      folder_override:
+        description: "One-off OneDrive folder path for this run only (Instant Backup's location picker) — leave blank to use the configured default"
+        required: false
+        default: ""
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install PostgreSQL client (for pg_dump)
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Run backup check / backup
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ONEDRIVE_TENANT_ID: ${{ secrets.ONEDRIVE_TENANT_ID }}
+          ONEDRIVE_CLIENT_ID: ${{ secrets.ONEDRIVE_CLIENT_ID }}
+          ONEDRIVE_CLIENT_SECRET: ${{ secrets.ONEDRIVE_CLIENT_SECRET }}
+          ONEDRIVE_USER_ID: ${{ secrets.ONEDRIVE_USER_ID }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          FAILURE_EMAIL_FROM: ${{ secrets.FAILURE_EMAIL_FROM }}
+          FORCE_RUN: ${{ github.event.inputs.trigger_type == 'manual' && 'true' || 'false' }}
+          FOLDER_OVERRIDE: ${{ github.event.inputs.folder_override }}
+        run: node scripts/backup-database.mjs

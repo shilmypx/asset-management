@@ -23,8 +23,52 @@ Opens at `http://localhost:5173` running against in-memory mock data. Fine for b
 1. Create a free Supabase project at [supabase.com](https://supabase.com) (or your own — organization/project name doesn't matter).
 2. Run the schema against it: open the Supabase SQL editor and paste in the contents of `db/schema.sql` (or `psql "$DATABASE_URL" -f db/schema.sql` if you prefer the CLI). This creates all tables and seeds the four companies (Karawa, O2 Café, Joy, JOT Events) plus the shared departments. Then run `db/views.sql` the same way — it adds the joined views (`v_employees`, `v_assets`) the frontend queries.
 3. **Run `db/rls-policies.sql` before going anywhere near real data.** Without it, the anon key has no restrictions at all — any authenticated user (or, depending on your project's defaults, possibly anyone with the anon key) can read and write every company's data. This file enables Row-Level Security and scopes every table to the companies a user actually has a role in. It's not optional hardening — treat it as part of the schema setup, not a later step.
-4. Copy `.env.example` to `.env.local` and fill in your project's URL and anon key (Supabase dashboard → Project Settings → API).
-5. Restart `npm run dev` — the Org Structure page will now show "Live — connected to Supabase" and read real data instead of the mock set.
+4. Run `db/config-schema.sql` then `db/backup-schema.sql` (same SQL editor, same order matters — each depends on tables/functions from the ones before it). These back the Configuration page: HR sync, label print layout, notification routing, approvals, and database backup settings.
+5. Copy `.env.example` to `.env.local` and fill in your project's URL and anon key (Supabase dashboard → Project Settings → API).
+6. Restart `npm run dev` — the Org Structure page will now show "Live — connected to Supabase" and read real data instead of the mock set.
+
+## Setting up the extras: HR sync webhook, automation rules, and database backups
+
+These three features have real server-side code, but none of it runs automatically just from having a Supabase project — each needs its own one-time deployment step, because each does something a browser genuinely cannot do (verify webhook signatures with a secret, run on a schedule, or shell out to `pg_dump`).
+
+### HR sync webhook
+
+Only needed if you'll use `webhook` mode in Configuration → Integrations (vs. manual entry or scheduled polling).
+
+```bash
+supabase functions deploy hr-sync-webhook --no-verify-jwt
+```
+
+`--no-verify-jwt` because the HR system isn't a Supabase Auth user — it authenticates via an HMAC signature instead (see the function's own header comment for the exact request format your HR system needs to send, and where the signing secret comes from). The request contract in that file is a reasonable starting point, not a negotiated spec with any real HR vendor — expect to adjust the field mapping.
+
+### Automation rules
+
+```bash
+supabase functions deploy run-automation-rules
+```
+
+Then run `db/schedule-automation.sql` in the SQL editor (fill in your project ref and key) to schedule it daily via `pg_cron`.
+
+### Database backups (pg_dump → OneDrive)
+
+This one's the most involved, because a full binary database backup needs `pg_dump` and a real filesystem — neither of which exist in Supabase's Edge Function runtime (Deno). So the actual backup runs in **GitHub Actions** instead (`.github/workflows/database-backup.yml` + `scripts/backup-database.mjs`), which has both. Supabase's role is just: hold the schedule/destination config (Configuration → Database Backup) and provide a small Edge Function (`trigger-instant-backup`) that fires the GitHub Action's `workflow_dispatch` when someone clicks "Backup now."
+
+1. **Deploy the trigger function:**
+   ```bash
+   supabase functions deploy trigger-instant-backup
+   supabase secrets set GITHUB_PAT=<fine-grained token, Actions:write, scoped to this repo only>
+   supabase secrets set GITHUB_REPO=shilmypx/asset-management
+   ```
+2. **Register an Azure AD app** (Azure Portal → App registrations → New registration) for OneDrive access via Microsoft Graph. Add the `Files.ReadWrite.All` **application** permission (not delegated) and grant admin consent — app-only auth is what lets the backup run unattended, without a signed-in user. Note the Application (client) ID, Directory (tenant) ID, and create a client secret.
+3. **Add repo secrets** (GitHub → this repo → Settings → Secrets and variables → Actions):
+   - `DATABASE_URL` — Supabase → Project Settings → Database → Connection string ("URI", use the pooler connection)
+   - `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`
+   - `ONEDRIVE_TENANT_ID`, `ONEDRIVE_CLIENT_ID`, `ONEDRIVE_CLIENT_SECRET` — from step 2
+   - `ONEDRIVE_USER_ID` — the UPN or object ID of the OneDrive account backups should land in (app-only Graph auth needs a specific user's drive, not "me")
+   - `RESEND_API_KEY`, `FAILURE_EMAIL_FROM` — for the failure notification email (Resend, verified sending domain)
+4. Set the schedule and folder path in Configuration → Database Backup — the client ID/tenant ID fields there are for your own reference (they're not secret); the actual client *secret* only ever lives in the GitHub repo secret from step 3, never in the database.
+
+The workflow itself runs hourly and checks `backup_settings` each time to decide whether it's actually due (so "every 4 hours" or "weekly on Tuesdays at 2am" from the Configuration page means something) — it's not a dumb hourly backup.
 
 ## Deploying (Vercel)
 
@@ -55,6 +99,8 @@ Opens at `http://localhost:5173` running against in-memory mock data. Fine for b
 | Reports | ✅ 6 reports, CSV export + print-to-PDF |
 | Barcode Printing | ✅ Real Code128 + QR generation, print-ready |
 | Automation Rules | ✅ Config UI + real Edge Function (not auto-deployed — see below) |
+| Global Search | ✅ Dashboard, categorized results, camera barcode/QR scan, contextual actions (Edit, Assign/Transfer, Incident, Change, Problem) |
+| Configuration | ✅ HR sync (manual/scheduled/webhook), Barcode & Label printing layout, Email notification routing, Approvals, Database Backup, Master Data (links to existing screens) |
 
 ### Module notes worth knowing before you build further
 

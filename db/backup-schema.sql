@@ -2,15 +2,21 @@
 -- Run after db/schema.sql, db/views.sql, db/rls-policies.sql, db/config-schema.sql.
 --
 -- SECURITY NOTE: this table intentionally does NOT have columns for the
--- OneDrive client secret or refresh token. OAuth secrets belong in
--- Supabase Edge Function secrets (`supabase secrets set`), never in a
--- Postgres table reachable by the anon key — RLS protects against other
--- users reading it, but it doesn't protect against a compromised anon
--- key or a policy bug exposing a secret that should never have been
+-- OneDrive client secret or refresh token, or the database connection
+-- string. Those live as GitHub Actions repo secrets (DATABASE_URL,
+-- ONEDRIVE_CLIENT_SECRET, etc. — see .github/workflows/database-backup.yml),
+-- never in a Postgres table reachable by the anon key — RLS protects
+-- against other users reading it, but not against a compromised anon key
+-- or a policy bug exposing a secret that should never have been
 -- client-reachable in the first place. Non-secret config (folder path,
 -- schedule, notification emails, client ID which is not secret) lives
--- here; the actual bearer token lives only in the Edge Function's
--- environment. See supabase/functions/run-database-backup/index.ts.
+-- here; the actual bearer tokens and pg_dump connection string live only
+-- in GitHub Actions' secret store. See scripts/backup-database.mjs — the
+-- real backup logic runs there, not in a Supabase Edge Function, because
+-- Deno's runtime doesn't have a pg_dump binary available; Edge Functions
+-- only handle the "Instant Backup" button's trigger (supabase/functions/
+-- trigger-instant-backup), which fires a workflow_dispatch and lets
+-- GitHub Actions' full Linux environment do the actual dump.
 
 create table backup_settings (
   id uuid primary key default gen_random_uuid(),

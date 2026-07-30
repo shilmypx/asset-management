@@ -6,19 +6,20 @@ export type HrSyncSettings = {
   mode: "manual" | "api";
   api_endpoint: string | null;
   has_api_key: boolean; // the actual key is never sent to the client after being set
-  sync_frequency: string;
+  sync_frequency: string; // "manual" | "hourly" | "daily" | "weekly" | "webhook"
+  webhook_secret: string | null; // shown once after generation; HR system signs requests to our webhook with this
   last_synced_at: string | null;
   is_active: boolean;
 };
 
-const MOCK_HR_SYNC: HrSyncSettings = { id: "hr1", mode: "manual", api_endpoint: null, has_api_key: false, sync_frequency: "manual", last_synced_at: null, is_active: false };
+const MOCK_HR_SYNC: HrSyncSettings = { id: "hr1", mode: "manual", api_endpoint: null, has_api_key: false, sync_frequency: "manual", webhook_secret: null, last_synced_at: null, is_active: false };
 
 export async function fetchHrSyncSettings(): Promise<HrSyncSettings> {
   if (!isSupabaseConfigured) return MOCK_HR_SYNC;
-  const { data, error } = await supabase.from("hr_sync_settings").select("id, mode, api_endpoint, api_key_encrypted, sync_frequency, last_synced_at, is_active").limit(1).maybeSingle();
+  const { data, error } = await supabase.from("hr_sync_settings").select("id, mode, api_endpoint, api_key_encrypted, sync_frequency, webhook_secret, last_synced_at, is_active").limit(1).maybeSingle();
   if (error) throw error;
   if (!data) return { ...MOCK_HR_SYNC, id: "" };
-  return { id: data.id, mode: data.mode, api_endpoint: data.api_endpoint, has_api_key: Boolean(data.api_key_encrypted), sync_frequency: data.sync_frequency, last_synced_at: data.last_synced_at, is_active: data.is_active };
+  return { id: data.id, mode: data.mode, api_endpoint: data.api_endpoint, has_api_key: Boolean(data.api_key_encrypted), sync_frequency: data.sync_frequency, webhook_secret: data.webhook_secret, last_synced_at: data.last_synced_at, is_active: data.is_active };
 }
 
 export async function saveHrSyncSettings(input: { id: string; mode: "manual" | "api"; api_endpoint: string | null; api_key: string | null; sync_frequency: string; is_active: boolean }) {
@@ -32,6 +33,14 @@ export async function saveHrSyncSettings(input: { id: string; mode: "manual" | "
     const { error } = await supabase.from("hr_sync_settings").insert(payload);
     if (error) throw error;
   }
+}
+
+export async function generateWebhookSecret(id: string): Promise<string> {
+  if (!isSupabaseConfigured) throw new Error("Connect a Supabase project before writing data.");
+  const secret = crypto.randomUUID().replace(/-/g, "");
+  const { error } = await supabase.from("hr_sync_settings").update({ webhook_secret: secret, sync_frequency: "webhook" }).eq("id", id);
+  if (error) throw error;
+  return secret;
 }
 
 /* ---------------- Label / Barcode Print Settings ---------------- */
@@ -141,4 +150,71 @@ export async function updateApprovalRule(id: string, changes: Partial<Pick<Appro
   if (!isSupabaseConfigured) throw new Error("Connect a Supabase project before writing data.");
   const { error } = await supabase.from("approval_rules").update(changes).eq("id", id);
   if (error) throw error;
+}
+
+/* ---------------- Database Backup ---------------- */
+export type BackupSettings = {
+  id: string;
+  is_enabled: boolean;
+  frequency: "every_4_hours" | "daily" | "weekly" | "monthly";
+  scheduled_time: string; // "HH:MM", 24-hour
+  day_of_week: number | null;
+  day_of_month: number | null;
+  onedrive_folder_path: string;
+  onedrive_client_id: string | null;
+  onedrive_tenant_id: string | null;
+  failure_notification_emails: string[];
+  last_backup_at: string | null;
+  last_backup_status: "success" | "failed" | "running" | null;
+  last_backup_message: string | null;
+  last_backup_file_name: string | null;
+};
+
+export type BackupRun = {
+  id: string;
+  started_at: string;
+  completed_at: string | null;
+  status: "success" | "failed" | "running";
+  trigger_type: "scheduled" | "manual";
+  file_name: string | null;
+  onedrive_path: string | null;
+  error_message: string | null;
+};
+
+const MOCK_BACKUP_SETTINGS: BackupSettings = {
+  id: "bk1", is_enabled: false, frequency: "daily", scheduled_time: "02:00", day_of_week: null, day_of_month: null,
+  onedrive_folder_path: "/ITAMS-Backups", onedrive_client_id: null, onedrive_tenant_id: null,
+  failure_notification_emails: [], last_backup_at: null, last_backup_status: null, last_backup_message: null, last_backup_file_name: null,
+};
+const MOCK_BACKUP_RUNS: BackupRun[] = [];
+
+export async function fetchBackupSettings(): Promise<BackupSettings> {
+  if (!isSupabaseConfigured) return MOCK_BACKUP_SETTINGS;
+  const { data, error } = await supabase.from("backup_settings").select("*").limit(1).maybeSingle();
+  if (error) throw error;
+  return (data as BackupSettings) ?? MOCK_BACKUP_SETTINGS;
+}
+
+export async function saveBackupSettings(id: string, changes: Partial<BackupSettings>) {
+  if (!isSupabaseConfigured) throw new Error("Connect a Supabase project before writing data.");
+  const { error } = await supabase.from("backup_settings").update(changes).eq("id", id);
+  if (error) throw error;
+}
+
+export async function fetchBackupHistory(): Promise<BackupRun[]> {
+  if (!isSupabaseConfigured) return MOCK_BACKUP_RUNS;
+  const { data, error } = await supabase.from("backup_runs").select("*").order("started_at", { ascending: false }).limit(20);
+  if (error) throw error;
+  return data as BackupRun[];
+}
+
+/** Calls the trigger-instant-backup Edge Function, which fires the GitHub Actions workflow — see supabase/functions/trigger-instant-backup/index.ts */
+export async function triggerInstantBackup(folderOverride?: string): Promise<string> {
+  if (!isSupabaseConfigured) throw new Error("Connect a Supabase project — instant backup needs the deployed Edge Function and GitHub Actions workflow, neither of which exist without a real backend.");
+  const { data, error } = await supabase.functions.invoke("trigger-instant-backup", {
+    body: folderOverride ? { folder_path: folderOverride } : {},
+  });
+  if (error) throw error;
+  if (!data?.ok) throw new Error(data?.error ?? "Failed to trigger backup.");
+  return data.message as string;
 }
