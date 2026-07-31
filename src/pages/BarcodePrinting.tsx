@@ -5,6 +5,7 @@ import { Printer, Barcode as BarcodeIcon, Settings } from "lucide-react";
 import { fetchAssets } from "../lib/api/assets";
 import { fetchLabelSettings, LabelPrintSettings } from "../lib/api/configuration";
 import { Asset } from "../lib/mockData";
+import { useAuth } from "../lib/AuthGate";
 
 function Label({ asset, format, settings }: { asset: Asset; format: "barcode" | "qr"; settings: LabelPrintSettings }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -38,6 +39,7 @@ function Label({ asset, format, settings }: { asset: Asset; format: "barcode" | 
 }
 
 export default function BarcodePrinting() {
+  const { can } = useAuth();
   const [assets, setAssets] = useState<Asset[]>([]);
   const [settings, setSettings] = useState<LabelPrintSettings | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -103,7 +105,7 @@ export default function BarcodePrinting() {
         <div className="col-span-3">
           <div className="flex items-center justify-between mb-3 no-print">
             <div className="text-sm text-slate-600 flex items-center gap-1.5"><BarcodeIcon size={14} /> {selected.length} label{selected.length === 1 ? "" : "s"} selected</div>
-            <button onClick={() => window.print()} disabled={selected.length === 0} className="flex items-center gap-1.5 text-sm bg-accent text-white px-3 py-1.5 rounded-md disabled:opacity-40">
+            <button onClick={() => window.print()} disabled={selected.length === 0 || !can("hardware_assets", "print")} className="flex items-center gap-1.5 text-sm bg-accent text-white px-3 py-1.5 rounded-md disabled:opacity-40">
               <Printer size={14} /> Print labels
             </button>
           </div>

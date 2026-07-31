@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useAuth } from "../lib/AuthGate";
 import { Download, FileBarChart, Printer } from "lucide-react";
 import { fetchAssets } from "../lib/api/assets";
 import { fetchEmployees } from "../lib/api/employees";
@@ -22,6 +23,7 @@ const REPORTS: { id: ReportId; label: string; description: string }[] = [
 ];
 
 export default function Reports() {
+  const { can } = useAuth();
   const [active, setActive] = useState<ReportId>("assets_by_company");
   const [assets, setAssets] = useState<Asset[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -62,10 +64,10 @@ export default function Reports() {
               <div className="text-xs text-slate-400">{REPORTS.find((r) => r.id === active)?.description}</div>
             </div>
             <div className="flex gap-2">
-              <button onClick={() => window.print()} className="flex items-center gap-1.5 text-sm border border-slate-200 text-slate-700 px-3 py-1.5 rounded-md">
+              <button onClick={() => window.print()} disabled={!can("reports", "print")} className="flex items-center gap-1.5 text-sm border border-slate-200 text-slate-700 px-3 py-1.5 rounded-md disabled:opacity-40">
                 <Printer size={14} /> Print / Save as PDF
               </button>
-              <button onClick={handleExport} className="flex items-center gap-1.5 text-sm bg-slate-900 text-white px-3 py-1.5 rounded-md">
+              <button onClick={handleExport} disabled={!can("reports", "export")} className="flex items-center gap-1.5 text-sm bg-slate-900 text-white px-3 py-1.5 rounded-md disabled:opacity-40">
                 <Download size={14} /> Export CSV
               </button>
             </div>

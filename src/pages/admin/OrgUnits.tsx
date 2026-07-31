@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useAuth } from "../../lib/AuthGate";
 import { Plus, Database, CircleDot, Edit2 } from "lucide-react";
 import { fetchCompanies, fetchOrgUnits, createOrgUnit, updateOrgUnit, deactivateOrgUnit, CompanyRow, OrgUnitRow } from "../../lib/api/org";
 import { isSupabaseConfigured } from "../../lib/supabaseClient";
@@ -23,6 +24,7 @@ function flatten(units: OrgUnitRow[]): FlatRow[] {
 }
 
 export default function OrgUnitsAdmin() {
+  const { can } = useAuth();
   const [companies, setCompanies] = useState<CompanyRow[]>([]);
   const [companyId, setCompanyId] = useState<string>("");
   const [units, setUnits] = useState<OrgUnitRow[] | null>(null);
@@ -85,7 +87,7 @@ export default function OrgUnitsAdmin() {
         </div>
         <button
           onClick={() => setShowAdd((s) => !s)}
-          disabled={!isSupabaseConfigured}
+          disabled={!isSupabaseConfigured || !can("settings", "add")}
           className="flex items-center gap-1.5 text-sm bg-accent text-white px-3 py-1.5 rounded-md disabled:opacity-40"
         >
           <Plus size={14} /> Add org unit
@@ -132,7 +134,7 @@ export default function OrgUnitsAdmin() {
                     <span className={`text-xs px-2 py-0.5 rounded-full ${u.status === "active" ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-400"}`}>{u.status}</span>
                   </td>
                   <td className="px-4 py-2 text-right">
-                    <button onClick={() => setEditing(u)} disabled={!isSupabaseConfigured} className="text-slate-400 hover:text-slate-600 disabled:opacity-30">
+                    <button onClick={() => setEditing(u)} disabled={!isSupabaseConfigured || !can("settings", "edit")} className="text-slate-400 hover:text-slate-600 disabled:opacity-30">
                       <Edit2 size={13} />
                     </button>
                   </td>

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Database, CircleDot, Save, Info, Printer, Mail, CheckSquare, Plug, ListChecks, HardDrive, PlayCircle } from "lucide-react";
+import { useAuth } from "../../lib/AuthGate";
 import {
   fetchHrSyncSettings, saveHrSyncSettings, generateWebhookSecret, HrSyncSettings,
   fetchLabelSettings, saveLabelSettings, LabelPrintSettings,
@@ -33,6 +34,7 @@ function LiveBadge() {
 }
 
 function IntegrationsTab() {
+  const { can } = useAuth();
   const [settings, setSettings] = useState<HrSyncSettings | null>(null);
   const [mode, setMode] = useState<"manual" | "api">("manual");
   const [endpoint, setEndpoint] = useState("");
@@ -118,7 +120,7 @@ function IntegrationsTab() {
                 ) : settings?.webhook_secret ? (
                   <div className="text-xs text-slate-400">A signing secret is already set. Regenerate if the HR system needs a new one.</div>
                 ) : null}
-                <button type="button" onClick={handleGenerateWebhook} disabled={!isSupabaseConfigured} className="text-xs border border-slate-200 rounded-md px-2 py-1 text-slate-600 hover:bg-slate-50 disabled:opacity-40">
+                <button type="button" onClick={handleGenerateWebhook} disabled={!isSupabaseConfigured || !can("settings", "edit")} className="text-xs border border-slate-200 rounded-md px-2 py-1 text-slate-600 hover:bg-slate-50 disabled:opacity-40">
                   {settings?.webhook_secret ? "Regenerate signing secret" : "Generate signing secret"}
                 </button>
               </div>
@@ -129,7 +131,7 @@ function IntegrationsTab() {
             {settings?.last_synced_at && <div className="text-xs text-slate-400">Last synced: {new Date(settings.last_synced_at).toLocaleString()}</div>}
           </>
         )}
-        <button onClick={handleSave} disabled={!isSupabaseConfigured} className="flex items-center gap-1.5 text-sm bg-accent text-white px-3 py-1.5 rounded-md disabled:opacity-40">
+        <button onClick={handleSave} disabled={!isSupabaseConfigured || !can("settings", "edit")} className="flex items-center gap-1.5 text-sm bg-accent text-white px-3 py-1.5 rounded-md disabled:opacity-40">
           <Save size={14} /> Save
         </button>
         {saved && <span className="text-xs text-emerald-600 ml-2">Saved.</span>}
@@ -140,6 +142,7 @@ function IntegrationsTab() {
 }
 
 function BarcodeTab() {
+  const { can } = useAuth();
   const [s, setS] = useState<LabelPrintSettings | null>(null);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -221,7 +224,7 @@ function BarcodeTab() {
           </div>
         </div>
 
-        <button onClick={handleSave} disabled={!isSupabaseConfigured} className="flex items-center gap-1.5 text-sm bg-accent text-white px-3 py-1.5 rounded-md disabled:opacity-40">
+        <button onClick={handleSave} disabled={!isSupabaseConfigured || !can("settings", "edit")} className="flex items-center gap-1.5 text-sm bg-accent text-white px-3 py-1.5 rounded-md disabled:opacity-40">
           <Save size={14} /> Save
         </button>
         {saved && <span className="text-xs text-emerald-600 ml-2">Saved.</span>}
@@ -242,6 +245,7 @@ function BarcodeTab() {
 }
 
 function NotificationsTab() {
+  const { can } = useAuth();
   const [routes, setRoutes] = useState<NotificationRoute[] | null>(null);
   const [roles, setRoles] = useState<Role[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -269,7 +273,7 @@ function NotificationsTab() {
             <tr key={r.id} className="border-b border-slate-50 last:border-0">
               <td className="px-4 py-2.5 font-medium text-slate-700">{EVENT_LABELS[r.event_type] ?? r.event_type}</td>
               <td className="px-4 py-2.5">
-                <select value={r.recipient_type} onChange={(e) => handleChange(r, { recipient_type: e.target.value as any })} disabled={!isSupabaseConfigured} className="border border-slate-200 rounded-md px-2 py-1 text-xs">
+                <select value={r.recipient_type} onChange={(e) => handleChange(r, { recipient_type: e.target.value as any })} disabled={!isSupabaseConfigured || !can("settings", "edit")} className="border border-slate-200 rounded-md px-2 py-1 text-xs">
                   <option value="specific_email">Specific email</option>
                   <option value="role">Role</option>
                   <option value="requester_manager">Requester's manager</option>
@@ -277,10 +281,10 @@ function NotificationsTab() {
               </td>
               <td className="px-4 py-2.5">
                 {r.recipient_type === "specific_email" && (
-                  <input defaultValue={r.recipient_email ?? ""} onBlur={(e) => handleChange(r, { recipient_email: e.target.value })} disabled={!isSupabaseConfigured} placeholder="name@karawa.qa" className="border border-slate-200 rounded-md px-2 py-1 text-xs w-48" />
+                  <input defaultValue={r.recipient_email ?? ""} onBlur={(e) => handleChange(r, { recipient_email: e.target.value })} disabled={!isSupabaseConfigured || !can("settings", "edit")} placeholder="name@karawa.qa" className="border border-slate-200 rounded-md px-2 py-1 text-xs w-48" />
                 )}
                 {r.recipient_type === "role" && (
-                  <select value={r.recipient_role_id ?? ""} onChange={(e) => handleChange(r, { recipient_role_id: e.target.value })} disabled={!isSupabaseConfigured} className="border border-slate-200 rounded-md px-2 py-1 text-xs">
+                  <select value={r.recipient_role_id ?? ""} onChange={(e) => handleChange(r, { recipient_role_id: e.target.value })} disabled={!isSupabaseConfigured || !can("settings", "edit")} className="border border-slate-200 rounded-md px-2 py-1 text-xs">
                     <option value="">Select role…</option>
                     {roles.map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}
                   </select>
@@ -288,14 +292,14 @@ function NotificationsTab() {
                 {r.recipient_type === "requester_manager" && <span className="text-xs text-slate-400">Resolved per-request from the employee's manager field</span>}
               </td>
               <td className="px-4 py-2.5">
-                <select value={r.channel} onChange={(e) => handleChange(r, { channel: e.target.value as any })} disabled={!isSupabaseConfigured} className="border border-slate-200 rounded-md px-2 py-1 text-xs">
+                <select value={r.channel} onChange={(e) => handleChange(r, { channel: e.target.value as any })} disabled={!isSupabaseConfigured || !can("settings", "edit")} className="border border-slate-200 rounded-md px-2 py-1 text-xs">
                   <option value="email">Email</option>
                   <option value="dashboard">Dashboard</option>
                   <option value="both">Both</option>
                 </select>
               </td>
               <td className="px-4 py-2.5">
-                <input type="checkbox" checked={r.is_active} onChange={(e) => handleChange(r, { is_active: e.target.checked })} disabled={!isSupabaseConfigured} />
+                <input type="checkbox" checked={r.is_active} onChange={(e) => handleChange(r, { is_active: e.target.checked })} disabled={!isSupabaseConfigured || !can("settings", "edit")} />
               </td>
             </tr>
           ))}
@@ -307,6 +311,7 @@ function NotificationsTab() {
 }
 
 function ApprovalsTab() {
+  const { can } = useAuth();
   const [rules, setRules] = useState<ApprovalRule[] | null>(null);
   const [users, setUsers] = useState<UserRow[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -339,11 +344,11 @@ function ApprovalsTab() {
               <tr key={r.id} className="border-b border-slate-50 last:border-0">
                 <td className="px-4 py-2.5 font-medium text-slate-700 flex items-center gap-1.5"><CheckSquare size={13} className="text-slate-400" /> {REQUEST_TYPE_LABELS[r.request_type] ?? r.request_type}</td>
                 <td className="px-4 py-2.5">
-                  <input type="checkbox" checked={r.requires_approval} onChange={(e) => handleChange(r, { requires_approval: e.target.checked })} disabled={!isSupabaseConfigured} />
+                  <input type="checkbox" checked={r.requires_approval} onChange={(e) => handleChange(r, { requires_approval: e.target.checked })} disabled={!isSupabaseConfigured || !can("settings", "edit")} />
                 </td>
                 <td className="px-4 py-2.5">
                   {r.requires_approval ? (
-                    <select value={r.approver_user_id ?? ""} onChange={(e) => handleChange(r, { approver_user_id: e.target.value })} disabled={!isSupabaseConfigured} className="border border-slate-200 rounded-md px-2 py-1 text-xs">
+                    <select value={r.approver_user_id ?? ""} onChange={(e) => handleChange(r, { approver_user_id: e.target.value })} disabled={!isSupabaseConfigured || !can("settings", "edit")} className="border border-slate-200 rounded-md px-2 py-1 text-xs">
                       <option value="">Select approver…</option>
                       {users.map((u) => <option key={u.id} value={u.id}>{u.username}</option>)}
                     </select>
@@ -360,6 +365,7 @@ function ApprovalsTab() {
 }
 
 function BackupTab() {
+  const { can } = useAuth();
   const [settings, setSettings] = useState<BackupSettings | null>(null);
   const [history, setHistory] = useState<BackupRun[]>([]);
   const [enabled, setEnabled] = useState(false);
@@ -502,7 +508,7 @@ function BackupTab() {
             </div>
           )}
           <div className="flex items-center gap-2 pt-1">
-            <button onClick={handleSave} disabled={!isSupabaseConfigured} className="flex items-center gap-1.5 text-sm bg-accent text-white px-3 py-1.5 rounded-md disabled:opacity-40">
+            <button onClick={handleSave} disabled={!isSupabaseConfigured || !can("settings", "edit")} className="flex items-center gap-1.5 text-sm bg-accent text-white px-3 py-1.5 rounded-md disabled:opacity-40">
               <Save size={14} /> Save schedule
             </button>
             {saved && <span className="text-xs text-emerald-600">Saved.</span>}
@@ -513,7 +519,7 @@ function BackupTab() {
       <div className="bg-white border border-slate-200 rounded-lg p-5">
         <div className="flex items-center justify-between mb-3">
           <div className="text-sm font-medium text-slate-800">Instant backup</div>
-          <button onClick={handleInstantBackup} disabled={!isSupabaseConfigured || triggering} className="flex items-center gap-1.5 text-sm bg-slate-900 text-white px-3 py-1.5 rounded-md disabled:opacity-40">
+          <button onClick={handleInstantBackup} disabled={!isSupabaseConfigured || !can("settings", "edit") || triggering} className="flex items-center gap-1.5 text-sm bg-slate-900 text-white px-3 py-1.5 rounded-md disabled:opacity-40">
             <PlayCircle size={14} /> {triggering ? "Triggering…" : "Backup now"}
           </button>
         </div>

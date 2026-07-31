@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useAuth } from "../lib/AuthGate";
 import { Plus, Database, CircleDot, Package, ChevronRight } from "lucide-react";
 import { fetchPurchaseOrders, fetchPOLines, createPurchaseOrder, addPOLine, setPOStatus, receivePOLine, PurchaseOrder, POLine, POStatus } from "../lib/api/procurement";
 import { fetchCompanies, CompanyRow } from "../lib/api/org";
@@ -23,6 +24,7 @@ const NEXT_STATUS: Partial<Record<POStatus, POStatus>> = {
 };
 
 export default function Procurement() {
+  const { can } = useAuth();
   const [pos, setPos] = useState<PurchaseOrder[] | null>(null);
   const [selected, setSelected] = useState<PurchaseOrder | null>(null);
   const [lines, setLines] = useState<POLine[]>([]);
@@ -107,7 +109,7 @@ export default function Procurement() {
             <span className="flex items-center gap-1 text-xs text-slate-400"><CircleDot size={12} /> Demo data — read-only until Supabase is connected</span>
           )}
         </div>
-        <button onClick={() => setShowAdd((s) => !s)} disabled={!isSupabaseConfigured} className="flex items-center gap-1.5 text-sm bg-accent text-white px-3 py-1.5 rounded-md disabled:opacity-40">
+        <button onClick={() => setShowAdd((s) => !s)} disabled={!isSupabaseConfigured || !can("procurement", "add")} className="flex items-center gap-1.5 text-sm bg-accent text-white px-3 py-1.5 rounded-md disabled:opacity-40">
           <Plus size={14} /> New purchase order
         </button>
       </div>
@@ -158,7 +160,7 @@ export default function Procurement() {
                 <div className="flex items-center gap-2">
                   <span className={`text-xs px-2 py-0.5 rounded-full ${STATUS_STYLE[selected.status]}`}>{selected.status.replace("_", " ")}</span>
                   {NEXT_STATUS[selected.status] && (
-                    <button onClick={handleAdvanceStatus} disabled={!isSupabaseConfigured} className="text-xs bg-slate-900 text-white px-2 py-1 rounded-md disabled:opacity-40">
+                    <button onClick={handleAdvanceStatus} disabled={!isSupabaseConfigured || !can("procurement", "edit")} className="text-xs bg-slate-900 text-white px-2 py-1 rounded-md disabled:opacity-40">
                       Advance → {NEXT_STATUS[selected.status]!.replace("_", " ")}
                     </button>
                   )}
@@ -167,7 +169,7 @@ export default function Procurement() {
 
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">Line items</span>
-                <button onClick={() => setShowLineForm((s) => !s)} disabled={!isSupabaseConfigured} className="text-xs text-accent-dark disabled:opacity-40">+ Add line</button>
+                <button onClick={() => setShowLineForm((s) => !s)} disabled={!isSupabaseConfigured || !can("procurement", "add")} className="text-xs text-accent-dark disabled:opacity-40">+ Add line</button>
               </div>
 
               {showLineForm && (
@@ -202,7 +204,7 @@ export default function Procurement() {
                     {l.received_asset_id ? (
                       <span className="text-xs text-emerald-600">Received → asset created</span>
                     ) : selected.status === "ordered" ? (
-                      <button onClick={() => handleReceiveLine(l)} disabled={!isSupabaseConfigured} className="text-xs bg-accent text-white px-2 py-1 rounded-md disabled:opacity-40">
+                      <button onClick={() => handleReceiveLine(l)} disabled={!isSupabaseConfigured || !can("procurement", "edit")} className="text-xs bg-accent text-white px-2 py-1 rounded-md disabled:opacity-40">
                         Receive
                       </button>
                     ) : (

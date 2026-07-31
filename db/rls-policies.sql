@@ -1,28 +1,35 @@
 -- ITAMS — Row-Level Security policies
 -- Run this after db/schema.sql and db/views.sql.
 --
--- SCOPE OF THIS PASS: enforces two layers now —
+-- SCOPE OF THIS PASS: enforces two layers —
 --   1. Multi-tenant company-scoping (a Karawa user can't touch O2 Café's
 --      data) on every table.
 --   2. The actual view/add/edit/delete-per-module permission matrix from
---      the Roles & Permission Matrix screen, for the 13 primary
---      company-owned tables (org_units, locations, cost_centers, projects,
---      employees, assets, software_licenses, data_centers, contracts,
---      audit_sessions, purchase_orders, discovered_devices,
---      automation_rules) — write operations on these now actually check
---      has_permission(), not just company membership. Roles with
---      is_system_role = true bypass the permission check (still subject
---      to company-scoping) so an admin role doesn't need every checkbox
---      individually ticked.
+--      the Roles & Permission Matrix screen, checked via has_permission().
+--      Covers: the 13 primary company-owned tables (org_units, locations,
+--      cost_centers, projects, employees, assets, software_licenses,
+--      data_centers, contracts, audit_sessions, purchase_orders,
+--      discovered_devices, automation_rules); ITSM (incidents, problems,
+--      changes, and their child tables — previously "authenticated-only",
+--      which meant the Incidents row in the Roles screen had checkboxes
+--      that did nothing; that's fixed here); asset_requests (Self-Service,
+--      including a distinct requests:approve check for the approval queue
+--      vs. requests:add for submitting your own); and the highest-traffic
+--      child tables (asset_assignments, asset_transfers, asset_disposals,
+--      repair_records, repair_replacements, warranty_extensions,
+--      software_assignments, audit_scans, purchase_order_lines).
+--   Roles with is_system_role = true bypass the permission check (still
+--   subject to company-scoping).
 --
--- NOT YET covered by permission-matrix enforcement (company-scoping still
--- applies): child/detail tables reached only via their parent (asset
--- attachments/assignments/transfers/disposals, repair records, network
--- details, software assignments, warranty extensions, PO lines, asset
--- requests, etc.) — these inherit company access from their parent but
--- don't independently check has_permission() for the child table's own
--- module. Extending that is mechanical (same pattern, more tables) rather
--- than a design gap, but wasn't done in this pass to keep the file legible.
+-- NOT covered by permission-matrix enforcement (company-scoping still
+-- applies where the parent has it): asset_attachments, depreciation_entries,
+-- network_asset_details, software_installations, asset_relationships,
+-- racks, employee_department, custom_field_values. These are mostly
+-- system-written (depreciation entries, software installs from discovery)
+-- or low-stakes enough that extending the same pattern is mechanical
+-- repetition rather than a meaningfully different risk — a genuine
+-- prioritization call, not an oversight, but worth knowing if one of
+-- these turns out to matter more than expected as the app grows.
 
 -- ============================================================
 -- Helper functions
@@ -227,18 +234,18 @@ create policy scoped_via_asset on asset_attachments for all
 
 alter table asset_assignments enable row level security;
 create policy scoped_via_asset on asset_assignments for all
-  using (exists (select 1 from assets a where a.id = asset_id and a.company_id = any(current_user_company_ids())))
-  with check (exists (select 1 from assets a where a.id = asset_id and a.company_id = any(current_user_company_ids())));
+  using (exists (select 1 from assets a where a.id = asset_id and a.company_id = any(current_user_company_ids())) and has_permission('hardware_assets', 'edit'))
+  with check (exists (select 1 from assets a where a.id = asset_id and a.company_id = any(current_user_company_ids())) and has_permission('hardware_assets', 'edit'));
 
 alter table asset_transfers enable row level security;
 create policy scoped_via_asset on asset_transfers for all
-  using (exists (select 1 from assets a where a.id = asset_id and a.company_id = any(current_user_company_ids())))
-  with check (exists (select 1 from assets a where a.id = asset_id and a.company_id = any(current_user_company_ids())));
+  using (exists (select 1 from assets a where a.id = asset_id and a.company_id = any(current_user_company_ids())) and has_permission('hardware_assets', 'edit'))
+  with check (exists (select 1 from assets a where a.id = asset_id and a.company_id = any(current_user_company_ids())) and has_permission('hardware_assets', 'edit'));
 
 alter table asset_disposals enable row level security;
 create policy scoped_via_asset on asset_disposals for all
-  using (exists (select 1 from assets a where a.id = asset_id and a.company_id = any(current_user_company_ids())))
-  with check (exists (select 1 from assets a where a.id = asset_id and a.company_id = any(current_user_company_ids())));
+  using (exists (select 1 from assets a where a.id = asset_id and a.company_id = any(current_user_company_ids())) and has_permission('hardware_assets', 'delete'))
+  with check (exists (select 1 from assets a where a.id = asset_id and a.company_id = any(current_user_company_ids())) and has_permission('hardware_assets', 'delete'));
 
 alter table depreciation_entries enable row level security;
 create policy scoped_via_asset on depreciation_entries for all
@@ -262,18 +269,18 @@ create policy scoped_via_asset on asset_relationships for all
 
 alter table repair_records enable row level security;
 create policy scoped_via_asset on repair_records for all
-  using (exists (select 1 from assets a where a.id = asset_id and a.company_id = any(current_user_company_ids())))
-  with check (exists (select 1 from assets a where a.id = asset_id and a.company_id = any(current_user_company_ids())));
+  using (exists (select 1 from assets a where a.id = asset_id and a.company_id = any(current_user_company_ids())) and has_permission('repairs', 'edit'))
+  with check (exists (select 1 from assets a where a.id = asset_id and a.company_id = any(current_user_company_ids())) and has_permission('repairs', 'edit'));
 
 alter table repair_replacements enable row level security;
 create policy scoped_via_repair on repair_replacements for all
-  using (exists (select 1 from repair_records r join assets a on a.id = r.asset_id where r.id = repair_record_id and a.company_id = any(current_user_company_ids())))
-  with check (exists (select 1 from repair_records r join assets a on a.id = r.asset_id where r.id = repair_record_id and a.company_id = any(current_user_company_ids())));
+  using (exists (select 1 from repair_records r join assets a on a.id = r.asset_id where r.id = repair_record_id and a.company_id = any(current_user_company_ids())) and has_permission('repairs', 'edit'))
+  with check (exists (select 1 from repair_records r join assets a on a.id = r.asset_id where r.id = repair_record_id and a.company_id = any(current_user_company_ids())) and has_permission('repairs', 'edit'));
 
 alter table warranty_extensions enable row level security;
 create policy scoped_via_asset on warranty_extensions for all
-  using (exists (select 1 from assets a where a.id = asset_id and a.company_id = any(current_user_company_ids())))
-  with check (exists (select 1 from assets a where a.id = asset_id and a.company_id = any(current_user_company_ids())));
+  using (exists (select 1 from assets a where a.id = asset_id and a.company_id = any(current_user_company_ids())) and has_permission('contracts', 'add'))
+  with check (exists (select 1 from assets a where a.id = asset_id and a.company_id = any(current_user_company_ids())) and has_permission('contracts', 'add'));
 
 alter table racks enable row level security;
 create policy scoped_via_datacenter on racks for all
@@ -282,23 +289,30 @@ create policy scoped_via_datacenter on racks for all
 
 alter table software_assignments enable row level security;
 create policy scoped_via_license on software_assignments for all
-  using (exists (select 1 from software_licenses l where l.id = license_id and l.company_id = any(current_user_company_ids())))
-  with check (exists (select 1 from software_licenses l where l.id = license_id and l.company_id = any(current_user_company_ids())));
+  using (exists (select 1 from software_licenses l where l.id = license_id and l.company_id = any(current_user_company_ids())) and has_permission('software_licenses', 'edit'))
+  with check (exists (select 1 from software_licenses l where l.id = license_id and l.company_id = any(current_user_company_ids())) and has_permission('software_licenses', 'edit'));
 
 alter table audit_scans enable row level security;
 create policy scoped_via_session on audit_scans for all
-  using (exists (select 1 from audit_sessions s where s.id = audit_session_id and s.company_id = any(current_user_company_ids())))
-  with check (exists (select 1 from audit_sessions s where s.id = audit_session_id and s.company_id = any(current_user_company_ids())));
+  using (exists (select 1 from audit_sessions s where s.id = audit_session_id and s.company_id = any(current_user_company_ids())) and has_permission('inventory_audit', 'add'))
+  with check (exists (select 1 from audit_sessions s where s.id = audit_session_id and s.company_id = any(current_user_company_ids())) and has_permission('inventory_audit', 'add'));
 
 alter table purchase_order_lines enable row level security;
 create policy scoped_via_po on purchase_order_lines for all
-  using (exists (select 1 from purchase_orders po where po.id = po_id and po.company_id = any(current_user_company_ids())))
-  with check (exists (select 1 from purchase_orders po where po.id = po_id and po.company_id = any(current_user_company_ids())));
+  using (exists (select 1 from purchase_orders po where po.id = po_id and po.company_id = any(current_user_company_ids())) and has_permission('procurement', 'edit'))
+  with check (exists (select 1 from purchase_orders po where po.id = po_id and po.company_id = any(current_user_company_ids())) and has_permission('procurement', 'edit'));
 
 alter table asset_requests enable row level security;
-create policy scoped_via_employee on asset_requests for all
-  using (exists (select 1 from employees e where e.id = employee_id and e.company_id = any(current_user_company_ids())))
-  with check (exists (select 1 from employees e where e.id = employee_id and e.company_id = any(current_user_company_ids())));
+create policy select_scoped on asset_requests for select
+  using (exists (select 1 from employees e where e.id = employee_id and e.company_id = any(current_user_company_ids())) and has_permission('requests', 'view'));
+create policy insert_scoped on asset_requests for insert
+  with check (exists (select 1 from employees e where e.id = employee_id and e.company_id = any(current_user_company_ids())) and has_permission('requests', 'add'));
+-- Deciding a request (approved/rejected) is the approval queue action —
+-- requires requests:approve specifically, not just requests:edit, since
+-- "can edit my own request" and "can approve someone else's" are
+-- different permissions in the Roles & Permission Matrix.
+create policy update_scoped on asset_requests for update
+  using (exists (select 1 from employees e where e.id = employee_id and e.company_id = any(current_user_company_ids())) and (has_permission('requests', 'edit') or has_permission('requests', 'approve')));
 
 alter table employee_department enable row level security;
 create policy scoped_direct on employee_department for all
@@ -307,38 +321,50 @@ create policy scoped_direct on employee_department for all
 
 -- ============================================================
 -- ITSM tables — incidents/problems/changes aren't strictly
--- company-owned in the schema (no company_id), so these are scoped
--- via the related employee/asset where present, and otherwise open
--- to any authenticated user with incidents:view — narrower scoping
--- would need a company_id added to these tables, which is a schema
--- change, not an RLS-only fix.
+-- company-owned in the schema (no company_id on any of them), so
+-- these can't be scoped to a company the way assets/employees are.
+-- What they DO get now: real has_permission('incidents', action)
+-- checks — the Roles & Permission Matrix has an "Incidents" row with
+-- view/add/edit/delete checkboxes, and until this pass those
+-- checkboxes did nothing (the policy was auth.role() = 'authenticated'
+-- regardless of what was checked). That's fixed below. Problems and
+-- Changes share the same 'incidents' module rather than getting their
+-- own — there's no separate row for them in the permission matrix UI,
+-- and adding one is a UI change, not just an RLS one, so it's a
+-- documented choice, not an oversight.
 -- ============================================================
 
 alter table incidents enable row level security;
-create policy incidents_access on incidents for all
-  using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+create policy select_incidents on incidents for select using (has_permission('incidents', 'view'));
+create policy insert_incidents on incidents for insert with check (has_permission('incidents', 'add'));
+create policy update_incidents on incidents for update using (has_permission('incidents', 'edit'));
+create policy delete_incidents on incidents for delete using (has_permission('incidents', 'delete'));
 
 alter table incident_timeline enable row level security;
 create policy scoped_via_incident on incident_timeline for all
-  using (exists (select 1 from incidents i where i.id = incident_id))
-  with check (exists (select 1 from incidents i where i.id = incident_id));
+  using (exists (select 1 from incidents i where i.id = incident_id) and has_permission('incidents', 'edit'))
+  with check (exists (select 1 from incidents i where i.id = incident_id) and has_permission('incidents', 'edit'));
 
 alter table incident_attachments enable row level security;
 create policy scoped_via_incident on incident_attachments for all
-  using (exists (select 1 from incidents i where i.id = incident_id))
-  with check (exists (select 1 from incidents i where i.id = incident_id));
+  using (exists (select 1 from incidents i where i.id = incident_id) and has_permission('incidents', 'edit'))
+  with check (exists (select 1 from incidents i where i.id = incident_id) and has_permission('incidents', 'edit'));
 
 alter table problems enable row level security;
-create policy problems_access on problems for all
-  using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+create policy select_problems on problems for select using (has_permission('incidents', 'view'));
+create policy insert_problems on problems for insert with check (has_permission('incidents', 'add'));
+create policy update_problems on problems for update using (has_permission('incidents', 'edit'));
+create policy delete_problems on problems for delete using (has_permission('incidents', 'delete'));
 
 alter table problem_incidents enable row level security;
 create policy problem_incidents_access on problem_incidents for all
-  using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+  using (has_permission('incidents', 'edit')) with check (has_permission('incidents', 'edit'));
 
 alter table changes enable row level security;
-create policy changes_access on changes for all
-  using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+create policy select_changes on changes for select using (has_permission('incidents', 'view'));
+create policy insert_changes on changes for insert with check (has_permission('incidents', 'add'));
+create policy update_changes on changes for update using (has_permission('incidents', 'edit'));
+create policy delete_changes on changes for delete using (has_permission('incidents', 'delete'));
 
 -- ============================================================
 -- Custom field values — scoped is impossible to express generically

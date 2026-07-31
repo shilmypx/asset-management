@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useAuth } from "../lib/AuthGate";
 import { X, Database, CircleDot, Network, Plus } from "lucide-react";
 import { Asset } from "../lib/mockData";
 import { fetchAssets } from "../lib/api/assets";
@@ -50,6 +51,7 @@ function TopologyGraph({ assets, relationships }: { assets: Asset[]; relationshi
 }
 
 export default function NetworkComponents() {
+  const { can } = useAuth();
   const [viewMode, setViewMode] = useState<"list" | "topology">("list");
   const [allRelationships, setAllRelationships] = useState<Relationship[]>([]);
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -181,7 +183,7 @@ export default function NetworkComponents() {
                 <option value="depends_on">depends on</option>
                 <option value="runs_on">runs on</option>
               </select>
-              <button disabled={!isSupabaseConfigured} className="text-xs bg-slate-900 text-white px-2 py-1.5 rounded-md disabled:opacity-40 flex items-center gap-1"><Plus size={12} /> Add</button>
+              <button disabled={!isSupabaseConfigured || !can("network", "add")} className="text-xs bg-slate-900 text-white px-2 py-1.5 rounded-md disabled:opacity-40 flex items-center gap-1"><Plus size={12} /> Add</button>
             </form>
             {error && <div className="text-xs text-red-500 mt-2">{error}</div>}
           </div>

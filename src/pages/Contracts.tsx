@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useAuth } from "../lib/AuthGate";
 import { Plus, Database, CircleDot, FileText, ShieldPlus } from "lucide-react";
 import { fetchContracts, createContract, fetchWarrantyExtensions, addWarrantyExtension, Contract, WarrantyExtension, ContractType } from "../lib/api/contracts";
 import { fetchCompanies, CompanyRow } from "../lib/api/org";
@@ -19,6 +20,7 @@ function renewalBadge(days: number | null) {
 }
 
 export default function Contracts() {
+  const { can } = useAuth();
   const [tab, setTab] = useState<"contracts" | "warranty">("contracts");
   const [contracts, setContracts] = useState<Contract[] | null>(null);
   const [extensions, setExtensions] = useState<WarrantyExtension[] | null>(null);
@@ -83,7 +85,7 @@ export default function Contracts() {
       {tab === "contracts" && (
         <>
           <div className="flex justify-end mb-3">
-            <button onClick={() => setShowAdd((s) => !s)} disabled={!isSupabaseConfigured} className="flex items-center gap-1.5 text-sm bg-accent text-white px-3 py-1.5 rounded-md disabled:opacity-40">
+            <button onClick={() => setShowAdd((s) => !s)} disabled={!isSupabaseConfigured || !can("contracts", "add")} className="flex items-center gap-1.5 text-sm bg-accent text-white px-3 py-1.5 rounded-md disabled:opacity-40">
               <Plus size={14} /> Add contract
             </button>
           </div>
@@ -176,7 +178,7 @@ export default function Contracts() {
               <label className="text-xs text-slate-500 block mb-1">Cost</label>
               <input required type="number" min={0} value={extCost} onChange={(e) => setExtCost(Number(e.target.value))} className="border border-slate-200 rounded-md px-2 py-1.5 text-sm w-28" />
             </div>
-            <button disabled={!isSupabaseConfigured} className="text-sm bg-accent text-white px-3 py-1.5 rounded-md disabled:opacity-40">Log extension</button>
+            <button disabled={!isSupabaseConfigured || !can("contracts", "add")} className="text-sm bg-accent text-white px-3 py-1.5 rounded-md disabled:opacity-40">Log extension</button>
           </form>
           {error && <div className="text-xs text-red-500 mb-3">{error}</div>}
 

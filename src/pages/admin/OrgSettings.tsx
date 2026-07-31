@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useAuth } from "../../lib/AuthGate";
 import { Plus, Database, CircleDot } from "lucide-react";
 import { fetchCompanies, CompanyRow } from "../../lib/api/org";
 import { fetchDepartments, createDepartment, fetchLocations, createLocation, fetchCostCenters, createCostCenter, Department, Location, CostCenter } from "../../lib/api/orgSettings";
@@ -7,6 +8,7 @@ import { isSupabaseConfigured } from "../../lib/supabaseClient";
 type Tab = "departments" | "locations" | "cost_centers";
 
 export default function OrgSettings() {
+  const { can } = useAuth();
   const [tab, setTab] = useState<Tab>("departments");
   const [companies, setCompanies] = useState<CompanyRow[]>([]);
   const [companyId, setCompanyId] = useState("");
@@ -83,7 +85,7 @@ export default function OrgSettings() {
             <span className="flex items-center gap-1 text-xs text-slate-400"><CircleDot size={12} /> Demo data</span>
           )}
         </div>
-        <button onClick={() => setShowAdd((s) => !s)} disabled={!isSupabaseConfigured} className="flex items-center gap-1.5 text-sm bg-accent text-white px-3 py-1.5 rounded-md disabled:opacity-40">
+        <button onClick={() => setShowAdd((s) => !s)} disabled={!isSupabaseConfigured || !can("settings", "add")} className="flex items-center gap-1.5 text-sm bg-accent text-white px-3 py-1.5 rounded-md disabled:opacity-40">
           <Plus size={14} /> Add
         </button>
       </div>

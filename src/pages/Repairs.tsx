@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useAuth } from "../lib/AuthGate";
 import { Plus, Database, CircleDot, Wrench, CheckCircle2 } from "lucide-react";
 import { fetchRepairs, fetchReplacements, createRepair, issueReplacement, completeRepair, RepairRecord, Replacement } from "../lib/api/repairs";
 import { fetchAssets } from "../lib/api/assets";
@@ -15,6 +16,7 @@ const STATUS_STYLE: Record<string, string> = {
 };
 
 export default function Repairs() {
+  const { can } = useAuth();
   const [repairs, setRepairs] = useState<RepairRecord[] | null>(null);
   const [selected, setSelected] = useState<RepairRecord | null>(null);
   const [replacements, setReplacements] = useState<Replacement[]>([]);
@@ -97,7 +99,7 @@ export default function Repairs() {
             <span className="flex items-center gap-1 text-xs text-slate-400"><CircleDot size={12} /> Demo data — read-only until Supabase is connected</span>
           )}
         </div>
-        <button onClick={() => setShowAdd((s) => !s)} disabled={!isSupabaseConfigured} className="flex items-center gap-1.5 text-sm bg-accent text-white px-3 py-1.5 rounded-md disabled:opacity-40">
+        <button onClick={() => setShowAdd((s) => !s)} disabled={!isSupabaseConfigured || !can("repairs", "add")} className="flex items-center gap-1.5 text-sm bg-accent text-white px-3 py-1.5 rounded-md disabled:opacity-40">
           <Plus size={14} /> Send for repair
         </button>
       </div>
@@ -175,7 +177,7 @@ export default function Repairs() {
                           {availableForReplacement.map((a) => <option key={a.id} value={a.id}>{a.tag} — {a.manufacturer} {a.model}</option>)}
                         </select>
                       )}
-                      <button onClick={handleIssueReplacement} disabled={!isSupabaseConfigured || (replacementSource === "internal_stock" && !replacementAssetId)} className="text-xs bg-slate-900 text-white px-2 py-1.5 rounded-md disabled:opacity-40">
+                      <button onClick={handleIssueReplacement} disabled={!isSupabaseConfigured || !can("repairs", "edit") || (replacementSource === "internal_stock" && !replacementAssetId)} className="text-xs bg-slate-900 text-white px-2 py-1.5 rounded-md disabled:opacity-40">
                         Issue replacement
                       </button>
                     </div>
@@ -186,7 +188,7 @@ export default function Repairs() {
                       <label className="text-xs text-slate-500 block mb-1">Repair cost</label>
                       <input type="number" min={0} value={repairCost} onChange={(e) => setRepairCost(Number(e.target.value))} className="border border-slate-200 rounded-md px-2 py-1.5 text-xs w-28" />
                     </div>
-                    <button onClick={handleComplete} disabled={!isSupabaseConfigured} className="text-xs bg-accent text-white px-3 py-1.5 rounded-md disabled:opacity-40 flex items-center gap-1">
+                    <button onClick={handleComplete} disabled={!isSupabaseConfigured || !can("repairs", "edit")} className="text-xs bg-accent text-white px-3 py-1.5 rounded-md disabled:opacity-40 flex items-center gap-1">
                       <CheckCircle2 size={12} /> Mark returned / complete
                     </button>
                   </div>

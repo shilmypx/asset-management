@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useAuth } from "../lib/AuthGate";
 import { Plus, Database, CircleDot, X, UserMinus } from "lucide-react";
 import { fetchLicenses, fetchAssignments, createLicense, assignSeat, revokeSeat, License, LicenseAssignment } from "../lib/api/software";
 import { fetchCompanies, CompanyRow } from "../lib/api/org";
@@ -14,6 +15,7 @@ function seatBarColor(used: number, total: number) {
 }
 
 export default function SoftwareLicenses() {
+  const { can } = useAuth();
   const [licenses, setLicenses] = useState<License[] | null>(null);
   const [selected, setSelected] = useState<License | null>(null);
   const [assignments, setAssignments] = useState<LicenseAssignment[]>([]);
@@ -88,7 +90,7 @@ export default function SoftwareLicenses() {
             <span className="flex items-center gap-1 text-xs text-slate-400"><CircleDot size={12} /> Demo data — read-only until Supabase is connected</span>
           )}
         </div>
-        <button onClick={() => setShowAdd((s) => !s)} disabled={!isSupabaseConfigured} className="flex items-center gap-1.5 text-sm bg-accent text-white px-3 py-1.5 rounded-md disabled:opacity-40">
+        <button onClick={() => setShowAdd((s) => !s)} disabled={!isSupabaseConfigured || !can("software_licenses", "add")} className="flex items-center gap-1.5 text-sm bg-accent text-white px-3 py-1.5 rounded-md disabled:opacity-40">
           <Plus size={14} /> Add license
         </button>
       </div>
@@ -168,7 +170,7 @@ export default function SoftwareLicenses() {
               {assignments.map((a) => (
                 <div key={a.id} className="flex items-center justify-between border border-slate-200 rounded-md px-3 py-2">
                   <span className="text-sm text-slate-700">{a.employee_name ?? a.employee_id}</span>
-                  <button onClick={() => handleRevoke(a)} disabled={!isSupabaseConfigured} className="text-slate-400 hover:text-red-500 disabled:opacity-30"><UserMinus size={14} /></button>
+                  <button onClick={() => handleRevoke(a)} disabled={!isSupabaseConfigured || !can("software_licenses", "delete")} className="text-slate-400 hover:text-red-500 disabled:opacity-30"><UserMinus size={14} /></button>
                 </div>
               ))}
               {assignments.length === 0 && <div className="text-xs text-slate-400">No seats assigned yet.</div>}
@@ -179,7 +181,7 @@ export default function SoftwareLicenses() {
                 <option value="">Assign to…</option>
                 {employees.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
               </select>
-              <button disabled={!isSupabaseConfigured || selected.seats_used >= selected.seats_purchased} className="text-sm bg-accent text-white px-3 py-1.5 rounded-md disabled:opacity-40">Assign</button>
+              <button disabled={!isSupabaseConfigured || !can("software_licenses", "add") || selected.seats_used >= selected.seats_purchased} className="text-sm bg-accent text-white px-3 py-1.5 rounded-md disabled:opacity-40">Assign</button>
             </form>
             {selected.seats_used >= selected.seats_purchased && <div className="text-xs text-amber-600 mt-2">All seats in use — over-license by adding more seats first.</div>}
           </div>

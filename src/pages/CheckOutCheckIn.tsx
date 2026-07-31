@@ -7,12 +7,14 @@ import { fetchEmployees } from "../lib/api/employees";
 import { fetchLookup } from "../lib/api/lookups";
 import { checkOutAsset, checkInAsset } from "../lib/api/checkout";
 import { isSupabaseConfigured } from "../lib/supabaseClient";
+import { useAuth } from "../lib/AuthGate";
 import { StatusPill, Tag } from "../components/Ui";
 import CameraScanner from "../components/CameraScanner";
 
 type Tab = "checkout" | "checkin";
 
 export default function CheckOutCheckIn() {
+  const { can } = useAuth();
   const location = useLocation();
   const prefill = location.state as { prefillAssetId?: string; tab?: Tab } | null;
   const [tab, setTab] = useState<Tab>(prefill?.tab ?? "checkout");
@@ -122,7 +124,7 @@ export default function CheckOutCheckIn() {
               {(() => { const a = availableAssets.find((x) => x.id === selectedAssetId); return a ? <>Assigning <Tag>{a.tag}</Tag> — currently <StatusPill status={a.status} /></> : null; })()}
             </div>
           )}
-          <button disabled={saving || !isSupabaseConfigured} className="text-sm bg-accent text-white px-4 py-2 rounded-md disabled:opacity-40">
+          <button disabled={saving || !isSupabaseConfigured || !can("hardware_assets", "edit")} className="text-sm bg-accent text-white px-4 py-2 rounded-md disabled:opacity-40">
             {saving ? "Assigning…" : "Confirm check-out"}
           </button>
         </form>
@@ -163,7 +165,7 @@ export default function CheckOutCheckIn() {
             <label className="text-xs text-slate-500 block mb-1">Remarks</label>
             <textarea value={remarks} onChange={(e) => setRemarks(e.target.value)} rows={2} className="w-full border border-slate-200 rounded-md px-3 py-2 text-sm" />
           </div>
-          <button disabled={saving || !isSupabaseConfigured} className="text-sm bg-accent text-white px-4 py-2 rounded-md disabled:opacity-40">
+          <button disabled={saving || !isSupabaseConfigured || !can("hardware_assets", "edit")} className="text-sm bg-accent text-white px-4 py-2 rounded-md disabled:opacity-40">
             {saving ? "Processing…" : "Complete check-in"}
           </button>
         </form>

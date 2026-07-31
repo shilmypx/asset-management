@@ -5,6 +5,7 @@ import { fetchCompanies, CompanyRow } from "../lib/api/org";
 import { fetchAssets } from "../lib/api/assets";
 import { Asset } from "../lib/mockData";
 import { isSupabaseConfigured } from "../lib/supabaseClient";
+import { useAuth } from "../lib/AuthGate";
 import { Tag } from "../components/Ui";
 import CameraScanner from "../components/CameraScanner";
 
@@ -16,6 +17,7 @@ const RESULT_STYLE: Record<string, { color: string; icon: any }> = {
 };
 
 export default function InventoryAudit() {
+  const { can } = useAuth();
   const [sessions, setSessions] = useState<AuditSession[] | null>(null);
   const [active, setActive] = useState<AuditSession | null>(null);
   const [scans, setScans] = useState<Scan[]>([]);
@@ -93,7 +95,7 @@ export default function InventoryAudit() {
             <select value={companyId} onChange={(e) => setCompanyId(e.target.value)} className="border border-slate-200 rounded-md px-2 py-1.5 text-sm">
               {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
-            <button onClick={handleStart} className="flex items-center gap-1.5 text-sm bg-accent text-white px-3 py-1.5 rounded-md">
+            <button onClick={handleStart} disabled={!can("inventory_audit", "add")} className="flex items-center gap-1.5 text-sm bg-accent text-white px-3 py-1.5 rounded-md disabled:opacity-40">
               <Plus size={14} /> Start audit session
             </button>
           </div>
@@ -105,13 +107,13 @@ export default function InventoryAudit() {
         <div className="bg-white border border-slate-200 rounded-lg p-5 mb-4">
           <div className="flex items-center justify-between mb-4">
             <div className="text-sm font-medium text-slate-700">Scanning: {companies.find((c) => c.id === active.company_id)?.name}</div>
-            <button onClick={handleComplete} className="text-xs bg-slate-900 text-white px-3 py-1.5 rounded-md">Complete audit</button>
+            <button onClick={handleComplete} disabled={!can("inventory_audit", "edit")} className="text-xs bg-slate-900 text-white px-3 py-1.5 rounded-md disabled:opacity-40">Complete audit</button>
           </div>
           <form onSubmit={handleScan} className="flex items-center gap-2 mb-4">
             <ScanLine size={16} className="text-slate-400" />
             <input autoFocus value={barcodeInput} onChange={(e) => setBarcodeInput(e.target.value)} placeholder="Scan or type barcode, e.g. KWA-LAP-00231" className="flex-1 border border-slate-200 rounded-md px-3 py-2 text-sm font-mono" />
-            <button type="button" onClick={() => setShowScanner(true)} className="flex items-center gap-1 text-sm border border-slate-200 rounded-md px-3 py-2 text-slate-600 hover:bg-slate-50"><Camera size={14} /> Camera</button>
-            <button className="text-sm bg-accent text-white px-3 py-2 rounded-md">Record</button>
+            <button type="button" onClick={() => setShowScanner(true)} disabled={!can("inventory_audit", "add")} className="flex items-center gap-1 text-sm border border-slate-200 rounded-md px-3 py-2 text-slate-600 hover:bg-slate-50 disabled:opacity-40"><Camera size={14} /> Camera</button>
+            <button disabled={!can("inventory_audit", "add")} className="text-sm bg-accent text-white px-3 py-2 rounded-md disabled:opacity-40">Record</button>
           </form>
           {showScanner && (
             <CameraScanner

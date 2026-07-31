@@ -70,6 +70,17 @@ This one's the most involved, because a full binary database backup needs `pg_du
 
 The workflow itself runs hourly and checks `backup_settings` each time to decide whether it's actually due (so "every 4 hours" or "weekly on Tuesdays at 2am" from the Configuration page means something) — it's not a dumb hourly backup.
 
+## RBAC coverage — what's actually enforced, and where
+
+Two layers, both real now:
+
+- **Frontend**: `src/lib/AuthGate.tsx` exposes `can(module, action)`, backed by the signed-in user's actual granted permissions (loaded in `src/lib/auth.ts` from `user_roles` → `role_permissions` → `permissions`). The Sidebar nav filters every item by `can(module, "view")` — a user without a role sees only what they're allowed to. Every screen with a write action gates its buttons on the real permission, not on "is a backend connected" (a distinct, weaker check that used to be the *only* one everywhere).
+- **Backend (RLS)**: `db/rls-policies.sql` enforces the same matrix at the database layer via `has_permission()`, covering the 13 primary company-owned tables, ITSM (incidents/problems/changes — previously fake "authenticated-only" policies where the Roles screen's checkboxes did nothing), Self-Service requests (with `requests:approve` distinct from `requests:add`), and the highest-traffic child tables (assignments, transfers, disposals, repair records/replacements, warranty extensions, software assignments, audit scans, PO lines).
+
+**Still intentionally out of scope**, documented in the SQL file rather than silently absent: a handful of lower-stakes child tables (asset attachments, depreciation entries, network details, software installs from discovery, asset relationships, racks, employee-department links) and `custom_field_values` are company-scoped but not permission-matrix-scoped — mostly system-written, or genuinely hard to scope generically (`custom_field_values.entity_id` can point at several different tables). Extending them is the same mechanical pattern used everywhere else, just prioritized lower since they're not in the primary UI flows.
+
+Also worth not confusing with the above: `Assets.tsx` and `Employees.tsx` have no Add/Edit forms at all yet (list + detail view only) — that's a separate feature gap, not an RBAC gap.
+
 ## Deploying (Vercel)
 
 1. Push this repo to GitHub (already done if you're reading this from the repo).
@@ -101,6 +112,7 @@ The workflow itself runs hourly and checks `backup_settings` each time to decide
 | Automation Rules | ✅ Config UI + real Edge Function (not auto-deployed — see below) |
 | Global Search | ✅ Dashboard, categorized results, camera barcode/QR scan, contextual actions (Edit, Assign/Transfer, Incident, Change, Problem) |
 | Configuration | ✅ HR sync (manual/scheduled/webhook), Barcode & Label printing layout, Email notification routing, Approvals, Database Backup, Master Data (links to existing screens) |
+| RBAC coverage | ✅ Real permission checks (not just "is a backend connected") on every screen with a write action; nav filtered by view permission; ITSM and Self-Service extended from placeholder policies to real `has_permission()` checks — see below |
 
 ### Module notes worth knowing before you build further
 

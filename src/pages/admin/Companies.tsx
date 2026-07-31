@@ -2,8 +2,10 @@ import React, { useEffect, useState } from "react";
 import { Plus, Database, CircleDot } from "lucide-react";
 import { fetchCompanies, createCompany, CompanyRow } from "../../lib/api/org";
 import { isSupabaseConfigured } from "../../lib/supabaseClient";
+import { useAuth } from "../../lib/AuthGate";
 
 export default function CompaniesAdmin() {
+  const { can } = useAuth();
   const [companies, setCompanies] = useState<CompanyRow[] | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState("");
@@ -44,7 +46,7 @@ export default function CompaniesAdmin() {
         <button
           onClick={() => setShowForm((s) => !s)}
           className="flex items-center gap-1.5 text-sm bg-accent text-white px-3 py-1.5 rounded-md disabled:opacity-40"
-          disabled={!isSupabaseConfigured}
+          disabled={!isSupabaseConfigured || !can("settings", "add")}
           title={!isSupabaseConfigured ? "Connect Supabase to add companies" : ""}
         >
           <Plus size={14} /> Add company

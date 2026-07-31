@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
+import { useAuth } from "../lib/AuthGate";
 import { Plus, Database, CircleDot, AlertCircle, X } from "lucide-react";
 import {
   fetchIncidents, fetchTimeline, createIncident, addTimelineEntry, updateIncidentStatus,
@@ -16,6 +17,7 @@ const PRIORITY_STYLE: Record<string, string> = { High: "bg-red-50 text-red-500",
 const STATUS_STYLE: Record<string, string> = { Open: "bg-slate-100 text-slate-500", "In Progress": "bg-amber-50 text-amber-600", Resolved: "bg-emerald-50 text-emerald-600", Closed: "bg-slate-100 text-slate-400" };
 
 function IncidentsTab({ prefillAssetId }: { prefillAssetId?: string }) {
+  const { can } = useAuth();
   const [incidents, setIncidents] = useState<Incident[] | null>(null);
   const [selected, setSelected] = useState<Incident | null>(null);
   const [timeline, setTimeline] = useState<TimelineEntry[]>([]);
@@ -70,7 +72,7 @@ function IncidentsTab({ prefillAssetId }: { prefillAssetId?: string }) {
   return (
     <>
       <div className="flex justify-end mb-3">
-        <button onClick={() => setShowAdd((s) => !s)} disabled={!isSupabaseConfigured} className="flex items-center gap-1.5 text-sm bg-accent text-white px-3 py-1.5 rounded-md disabled:opacity-40">
+        <button onClick={() => setShowAdd((s) => !s)} disabled={!isSupabaseConfigured || !can("incidents", "add")} className="flex items-center gap-1.5 text-sm bg-accent text-white px-3 py-1.5 rounded-md disabled:opacity-40">
           <Plus size={14} /> Create incident
         </button>
       </div>
@@ -121,7 +123,7 @@ function IncidentsTab({ prefillAssetId }: { prefillAssetId?: string }) {
             </div>
             <div className="flex gap-2 mb-4">
               {["Open", "In Progress", "Resolved", "Closed"].map((s) => (
-                <button key={s} onClick={() => handleStatusChange(s)} disabled={!isSupabaseConfigured} className={`text-xs px-2 py-1 rounded-full disabled:opacity-40 ${selected.status === s ? STATUS_STYLE[s] : "bg-slate-50 text-slate-400"}`}>{s}</button>
+                <button key={s} onClick={() => handleStatusChange(s)} disabled={!isSupabaseConfigured || !can("incidents", "edit")} className={`text-xs px-2 py-1 rounded-full disabled:opacity-40 ${selected.status === s ? STATUS_STYLE[s] : "bg-slate-50 text-slate-400"}`}>{s}</button>
               ))}
             </div>
             <div className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Timeline</div>
@@ -131,7 +133,7 @@ function IncidentsTab({ prefillAssetId }: { prefillAssetId?: string }) {
             </div>
             <div className="flex gap-2">
               <input value={newNote} onChange={(e) => setNewNote(e.target.value)} placeholder="Add update…" className="flex-1 border border-slate-200 rounded-md px-2 py-1.5 text-sm" />
-              <button onClick={handleAddNote} disabled={!isSupabaseConfigured} className="text-sm bg-slate-900 text-white px-3 py-1.5 rounded-md disabled:opacity-40">Add</button>
+              <button onClick={handleAddNote} disabled={!isSupabaseConfigured || !can("incidents", "edit")} className="text-sm bg-slate-900 text-white px-3 py-1.5 rounded-md disabled:opacity-40">Add</button>
             </div>
           </div>
         </div>
@@ -141,6 +143,7 @@ function IncidentsTab({ prefillAssetId }: { prefillAssetId?: string }) {
 }
 
 function ProblemsTab() {
+  const { can } = useAuth();
   const [problems, setProblems] = useState<Problem[] | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [number, setNumber] = useState("");
@@ -159,7 +162,7 @@ function ProblemsTab() {
   return (
     <>
       <div className="flex justify-end mb-3">
-        <button onClick={() => setShowAdd((s) => !s)} className="flex items-center gap-1.5 text-sm bg-accent text-white px-3 py-1.5 rounded-md"><Plus size={14} /> Log problem</button>
+        <button onClick={() => setShowAdd((s) => !s)} disabled={!can("incidents", "add")} className="flex items-center gap-1.5 text-sm bg-accent text-white px-3 py-1.5 rounded-md disabled:opacity-40"><Plus size={14} /> Log problem</button>
       </div>
       {showAdd && (
         <form onSubmit={handleAdd} className="bg-white border border-slate-200 rounded-lg p-4 mb-4 flex items-end gap-3">
@@ -188,6 +191,7 @@ function ProblemsTab() {
 }
 
 function ChangesTab() {
+  const { can } = useAuth();
   const [changes, setChanges] = useState<Change[] | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [number, setNumber] = useState("");
@@ -208,7 +212,7 @@ function ChangesTab() {
   return (
     <>
       <div className="flex justify-end mb-3">
-        <button onClick={() => setShowAdd((s) => !s)} className="flex items-center gap-1.5 text-sm bg-accent text-white px-3 py-1.5 rounded-md"><Plus size={14} /> Request change</button>
+        <button onClick={() => setShowAdd((s) => !s)} disabled={!can("incidents", "add")} className="flex items-center gap-1.5 text-sm bg-accent text-white px-3 py-1.5 rounded-md disabled:opacity-40"><Plus size={14} /> Request change</button>
       </div>
       {showAdd && (
         <form onSubmit={handleAdd} className="bg-white border border-slate-200 rounded-lg p-4 mb-4 flex items-end gap-3 flex-wrap">

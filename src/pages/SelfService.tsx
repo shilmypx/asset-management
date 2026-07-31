@@ -12,6 +12,7 @@ import { StatusPill, Tag } from "../components/Ui";
 const STATUS_TO_PILL: Record<string, string> = { submitted: "Reserved", approved: "Available", rejected: "Lost", fulfilled: "Assigned" };
 
 export default function SelfService() {
+  const { can } = useAuth();
   const [view, setView] = useState<"portal" | "approvals">("portal");
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [employeeIdx, setEmployeeIdx] = useState(0); // fallback stand-in when no real session identity is available
@@ -190,8 +191,8 @@ export default function SelfService() {
                   <td className="px-5 py-3 text-right">
                     {r.status === "submitted" ? (
                       <div className="flex justify-end gap-2">
-                        <button onClick={() => handleDecide(r, "approved")} disabled={!isSupabaseConfigured} className="text-emerald-600 disabled:opacity-30"><CheckCircle2 size={16} /></button>
-                        <button onClick={() => handleDecide(r, "rejected")} disabled={!isSupabaseConfigured} className="text-red-500 disabled:opacity-30"><XCircle size={16} /></button>
+                        <button onClick={() => handleDecide(r, "approved")} disabled={!isSupabaseConfigured || !can("requests", "approve")} className="text-emerald-600 disabled:opacity-30"><CheckCircle2 size={16} /></button>
+                        <button onClick={() => handleDecide(r, "rejected")} disabled={!isSupabaseConfigured || !can("requests", "approve")} className="text-red-500 disabled:opacity-30"><XCircle size={16} /></button>
                       </div>
                     ) : <span className="text-xs text-slate-300">Decided</span>}
                   </td>

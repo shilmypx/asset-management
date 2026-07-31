@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useAuth } from "../../lib/AuthGate";
 import { Plus, Database, CircleDot } from "lucide-react";
 import { fetchLookup, createLookupItem, toggleLookupActive, LookupTable, LookupRow } from "../../lib/api/lookups";
 import { isSupabaseConfigured } from "../../lib/supabaseClient";
@@ -15,6 +16,7 @@ const TABLES: { value: LookupTable; label: string; hasCode?: boolean; hasDepreci
 ];
 
 export default function MasterDataAdmin() {
+  const { can } = useAuth();
   const [table, setTable] = useState<LookupTable>("asset_categories");
   const [rows, setRows] = useState<LookupRow[] | null>(null);
   const [showAdd, setShowAdd] = useState(false);
@@ -65,7 +67,7 @@ export default function MasterDataAdmin() {
             <span className="flex items-center gap-1 text-xs text-slate-400"><CircleDot size={12} /> Demo data — read-only until Supabase is connected</span>
           )}
         </div>
-        <button onClick={() => setShowAdd((s) => !s)} disabled={!isSupabaseConfigured} className="flex items-center gap-1.5 text-sm bg-accent text-white px-3 py-1.5 rounded-md disabled:opacity-40">
+        <button onClick={() => setShowAdd((s) => !s)} disabled={!isSupabaseConfigured || !can("settings", "add")} className="flex items-center gap-1.5 text-sm bg-accent text-white px-3 py-1.5 rounded-md disabled:opacity-40">
           <Plus size={14} /> Add {config.label.replace(/s$/, "")}
         </button>
       </div>
@@ -110,7 +112,7 @@ export default function MasterDataAdmin() {
                 {config.hasCode && <td className="px-5 py-3 text-slate-500">{r.code}</td>}
                 {config.hasDepreciationFlag && <td className="px-5 py-3 text-slate-500">{r.allow_depreciation ? "Yes" : "No"}</td>}
                 <td className="px-5 py-3">
-                  <button onClick={() => handleToggle(r)} disabled={!isSupabaseConfigured} className="disabled:opacity-40">
+                  <button onClick={() => handleToggle(r)} disabled={!isSupabaseConfigured || !can("settings", "edit")} className="disabled:opacity-40">
                     <span className={`text-xs px-2 py-0.5 rounded-full ${r.is_active ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-400"}`}>
                       {r.is_active ? "Active" : "Inactive"}
                     </span>

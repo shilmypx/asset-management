@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useAuth } from "../../lib/AuthGate";
 import { Plus, Database, CircleDot, Lock, Unlock, Info } from "lucide-react";
 import { fetchUsers, toggleLock, createUserProfile, UserRow } from "../../lib/api/users";
 import { isSupabaseConfigured } from "../../lib/supabaseClient";
@@ -6,6 +7,7 @@ import { fetchEmployees } from "../../lib/api/employees";
 import { Employee } from "../../lib/mockData";
 
 export default function UsersAdmin() {
+  const { can } = useAuth();
   const [users, setUsers] = useState<UserRow[] | null>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [showAdd, setShowAdd] = useState(false);
@@ -52,7 +54,7 @@ export default function UsersAdmin() {
             <span className="flex items-center gap-1 text-xs text-slate-400"><CircleDot size={12} /> Demo data — read-only until Supabase is connected</span>
           )}
         </div>
-        <button onClick={() => setShowAdd((s) => !s)} disabled={!isSupabaseConfigured} className="flex items-center gap-1.5 text-sm bg-accent text-white px-3 py-1.5 rounded-md disabled:opacity-40">
+        <button onClick={() => setShowAdd((s) => !s)} disabled={!isSupabaseConfigured || !can("settings", "add")} className="flex items-center gap-1.5 text-sm bg-accent text-white px-3 py-1.5 rounded-md disabled:opacity-40">
           <Plus size={14} /> Add user
         </button>
       </div>
@@ -108,7 +110,7 @@ export default function UsersAdmin() {
                 </td>
                 <td className="px-5 py-3 text-slate-500">{u.last_login_at ?? "Never"}</td>
                 <td className="px-5 py-3 text-right">
-                  <button onClick={() => handleLockToggle(u)} disabled={!isSupabaseConfigured} className="text-slate-400 hover:text-slate-600 disabled:opacity-30">
+                  <button onClick={() => handleLockToggle(u)} disabled={!isSupabaseConfigured || !can("settings", "edit")} className="text-slate-400 hover:text-slate-600 disabled:opacity-30">
                     {u.is_locked ? <Lock size={14} className="text-red-500" /> : <Unlock size={14} />}
                   </button>
                 </td>

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useAuth } from "../../lib/AuthGate";
 import { Plus, Database, CircleDot } from "lucide-react";
 import { fetchRoles, fetchPermissions, fetchGrantedPermissionIds, setPermission, createRole, Role, Permission } from "../../lib/api/rbac";
 import { isSupabaseConfigured } from "../../lib/supabaseClient";
@@ -22,6 +23,7 @@ const MODULE_LABELS: Record<string, string> = {
 const ACTION_ORDER = ["view", "add", "edit", "delete", "approve", "export", "print", "import"];
 
 export default function RolesAdmin() {
+  const { can } = useAuth();
   const [roles, setRoles] = useState<Role[]>([]);
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
@@ -92,7 +94,7 @@ export default function RolesAdmin() {
             <span className="flex items-center gap-1 text-xs text-slate-400"><CircleDot size={12} /> Demo data — read-only until Supabase is connected</span>
           )}
         </div>
-        <button onClick={() => setShowAdd((s) => !s)} disabled={!isSupabaseConfigured} className="flex items-center gap-1.5 text-sm bg-accent text-white px-3 py-1.5 rounded-md disabled:opacity-40">
+        <button onClick={() => setShowAdd((s) => !s)} disabled={!isSupabaseConfigured || !can("settings", "add")} className="flex items-center gap-1.5 text-sm bg-accent text-white px-3 py-1.5 rounded-md disabled:opacity-40">
           <Plus size={14} /> Create role
         </button>
       </div>
@@ -131,7 +133,7 @@ export default function RolesAdmin() {
                         <input
                           type="checkbox"
                           checked={checked}
-                          disabled={!isSupabaseConfigured}
+                          disabled={!isSupabaseConfigured || !can("settings", "edit")}
                           onChange={() => toggle(m, a)}
                           aria-label={`${m} ${a}`}
                         />
