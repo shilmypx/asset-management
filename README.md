@@ -2,10 +2,12 @@
 
 Enterprise IT Asset Management System prototype for the Karawa group of companies (Karawa, O2 Café, Joy, JOT Events).
 
+**→ Deploying this for real? Start with [DEPLOYMENT.md](./DEPLOYMENT.md)** — a step-by-step walkthrough from a blank Supabase project to a live, working system. Everything below this point is reference material for developers working on the code; the deployment guide is the ordered checklist.
+
 ## What's here
 
 - `src/` — React + TypeScript + Tailwind frontend. Every module from the architecture doc has a working screen — see the Status section below for the full list and what's live vs. demo-mode.
-- `db/schema.sql` — full Postgres schema for the whole system (org structure, RBAC, hardware/software assets, procurement, repair & replacement, contracts, incidents/problems/changes, inventory audit, discovery/reconciliation, self-service requests, automation rules, custom fields, audit trail). Run this against a fresh Postgres/Supabase database to stand up the real backend.
+- `db/schema.sql` — full Postgres schema for the whole system (org structure, RBAC, hardware/software assets, procurement, repair & replacement, contracts, incidents/problems/changes, inventory audit, discovery/reconciliation, self-service requests, automation rules, custom fields, audit trail). `db/views.sql`, `db/rls-policies.sql`, `db/config-schema.sql`, and `db/backup-schema.sql` extend it — see "Connecting a real backend" below for the run order, or just use **`db/00-complete-setup.sql`**, which is all five concatenated into one script for convenience (regenerated from the individual files, not maintained separately).
 
 See the project's architecture doc and screens/fields/functions spec (shared alongside this repo) for the full module list and build roadmap.
 
@@ -117,7 +119,7 @@ Also worth not confusing with the above: `Assets.tsx` and `Employees.tsx` have n
 ### Module notes worth knowing before you build further
 
 - **Auth**: real Supabase Auth sign-in now gates the app — when `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` are set, you'll see a login screen instead of the app until you sign in; demo mode (no env vars) skips it entirely since there's no backend to authenticate against. The `users` table is still app-level data only (role links, employee link, lock status) — it's linked to the real `auth.users` row by matching email. **To create someone's first login**: Supabase dashboard → Authentication → Users → Invite user (sends them a password-setup email) — that's the credential half; separately, use the Users admin screen in-app to create their app-level profile (employee link, role) with a matching email. Self-Service now shows "Signed in as [name]" automatically once your account is linked to an employee record this way — the picker only appears as a fallback in demo mode or if the link isn't set up yet.
-- **Check-Out/Check-In**: checking out sets the asset's owner + status and logs an `asset_assignments` row; checking in closes that row and returns the asset to Available — or leaves it flagged if condition is Damaged/Needs Repair, which is where Repair & Maintenance picks up.
+- **Check-Out/Check-In**: checking out sets the asset's owner + status and logs an `asset_assignments` row; checking in closes that row and returns the asset to Available — or leaves it flagged if condition is Damaged/Needs Repair, which is where Repair & Maintenance picks up. Assignment isn't employee-only — shared equipment (printers, dashboard monitors, pen drives) can be assigned to a **Department** or **Location** instead, matching how those actually get used in practice. This was in the schema from the start (`assets.current_owner_type` always supported it) but the Check-Out screen only exposed the employee path until this pass — worth knowing if you'd assumed the two were in sync from the beginning.
 - **Repair & Maintenance**: the one module with real state-machine logic — issuing a temporary replacement (internal stock or vendor loaner) hands the original's assignment to the replacement; completing the repair auto-recovers it.
 - **Procurement**: receiving a PO line while it's "ordered" creates a real `assets` row and links it back — an actual request-to-inventory loop, not just a status tracker.
 - **Network Components**: the relationship graph (`asset_relationships`) is fully functional data-wise but only rendered as a list, not a visual graph, yet.

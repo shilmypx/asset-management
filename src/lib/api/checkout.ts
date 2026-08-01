@@ -1,18 +1,20 @@
 import { supabase, isSupabaseConfigured } from "../supabaseClient";
 
-export async function checkOutAsset(assetId: string, employeeId: string, statusId: string) {
+export type AssignableOwnerType = "employee" | "department" | "location";
+
+export async function checkOutAsset(assetId: string, ownerType: AssignableOwnerType, ownerId: string, statusId: string) {
   if (!isSupabaseConfigured) throw new Error("Connect a Supabase project before writing data.");
   const { error: assignError } = await supabase.from("asset_assignments").insert({
     asset_id: assetId,
-    assigned_to_type: "employee",
-    assigned_to_id: employeeId,
+    assigned_to_type: ownerType,
+    assigned_to_id: ownerId,
     action_type: "checkout",
   });
   if (assignError) throw assignError;
 
   const { error: assetError } = await supabase
     .from("assets")
-    .update({ current_owner_type: "employee", current_owner_id: employeeId, status_id: statusId })
+    .update({ current_owner_type: ownerType, current_owner_id: ownerId, status_id: statusId })
     .eq("id", assetId);
   if (assetError) throw assetError;
 }

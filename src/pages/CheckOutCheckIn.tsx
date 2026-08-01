@@ -1,17 +1,25 @@
 import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { ScanBarcode, ArrowRightLeft, Database, CircleDot, CheckCircle2, Camera } from "lucide-react";
+import { ScanBarcode, ArrowRightLeft, Database, CircleDot, CheckCircle2, Camera, User, Building2, MapPin } from "lucide-react";
 import { Asset, Employee } from "../lib/mockData";
 import { fetchAssets } from "../lib/api/assets";
 import { fetchEmployees } from "../lib/api/employees";
 import { fetchLookup } from "../lib/api/lookups";
-import { checkOutAsset, checkInAsset } from "../lib/api/checkout";
+import { fetchDepartments, fetchLocations, Department, Location } from "../lib/api/orgSettings";
+import { fetchCompanies } from "../lib/api/org";
+import { checkOutAsset, checkInAsset, AssignableOwnerType } from "../lib/api/checkout";
 import { isSupabaseConfigured } from "../lib/supabaseClient";
 import { useAuth } from "../lib/AuthGate";
 import { StatusPill, Tag } from "../components/Ui";
 import CameraScanner from "../components/CameraScanner";
 
 type Tab = "checkout" | "checkin";
+
+const OWNER_TYPES: { value: AssignableOwnerType; label: string; icon: any }[] = [
+  { value: "employee", label: "Employee", icon: User },
+  { value: "department", label: "Department", icon: Building2 },
+  { value: "location", label: "Location", icon: MapPin },
+];
 
 export default function CheckOutCheckIn() {
   const { can } = useAuth();
@@ -21,9 +29,12 @@ export default function CheckOutCheckIn() {
   const [showScanner, setShowScanner] = useState(false);
   const [assets, setAssets] = useState<Asset[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [locations, setLocations] = useState<(Location & { companyName?: string })[]>([]);
   const [statusIds, setStatusIds] = useState<Record<string, string>>({});
+  const [ownerType, setOwnerType] = useState<AssignableOwnerType>("employee");
   const [selectedAssetId, setSelectedAssetId] = useState("");
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
+  const [selectedOwnerId, setSelectedOwnerId] = useState("");
   const [condition, setCondition] = useState("Good");
   const [remarks, setRemarks] = useState("");
   const [accessories, setAccessories] = useState<Record<string, boolean>>({ Charger: false, Bag: false, Mouse: false });
@@ -36,10 +47,20 @@ export default function CheckOutCheckIn() {
   useEffect(() => {
     reload();
     fetchEmployees().then(setEmployees);
+    fetchDepartments().then(setDepartments);
     fetchLookup("asset_statuses").then((rows) => {
       const map: Record<string, string> = {};
       rows.forEach((r) => (map[r.name] = r.id));
       setStatusIds(map);
+    });
+    // Locations are company-scoped, but "assign to location" is common
+    // across companies (a printer sits in a location regardless of which
+    // company's checkout screen you're on) — so pull every company's
+    // locations and show them with the company name inline, rather than
+    // forcing a separate company picker before you can even see the list.
+    fetchCompanies().then(async (companies) => {
+      const all = await Promise.all(companies.map(async (c) => (await fetchLocations(c.id)).map((l) => ({ ...l, companyName: c.name }))));
+      setLocations(all.flat());
     });
   }, []);
 
@@ -55,9 +76,9 @@ export default function CheckOutCheckIn() {
     e.preventDefault();
     setError(null); setSuccess(null); setSaving(true);
     try {
-      await checkOutAsset(selectedAssetId, selectedEmployeeId, statusIds["Assigned"]);
+      await checkOutAsset(selectedAssetId, ownerType, selectedOwnerId, statusIds["Assigned"]);
       setSuccess("Asset checked out.");
-      setSelectedAssetId(""); setSelectedEmployeeId("");
+      setSelectedAssetId(""); setSelectedOwnerId("");
       await reload();
     } catch (err: any) {
       setError(err.message ?? "Failed to check out.");
@@ -102,12 +123,55 @@ export default function CheckOutCheckIn() {
       {tab === "checkout" && (
         <form onSubmit={handleCheckOut} className="bg-white border border-slate-200 rounded-lg p-5 space-y-4">
           <div>
-            <label className="text-xs text-slate-500 block mb-1">Select employee</label>
-            <select required value={selectedEmployeeId} onChange={(e) => setSelectedEmployeeId(e.target.value)} className="w-full border border-slate-200 rounded-md px-3 py-2 text-sm">
-              <option value="">Select…</option>
-              {employees.map((e) => <option key={e.id} value={e.id}>{e.name} — {e.company}</option>)}
-            </select>
+            <label className="text-xs text-slate-500 block mb-1.5">Assign to</label>
+            <div className="flex border border-slate-200 rounded-md overflow-hidden w-fit">
+              {OWNER_TYPES.map((t) => {
+                const Icon = t.icon;
+                return (
+                  <button
+                    key={t.value}
+                    type="button"
+                    onClick={() => { setOwnerType(t.value); setSelectedOwnerId(""); }}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 text-xs ${ownerType === t.value ? "bg-slate-900 text-white" : "text-slate-500 hover:bg-slate-50"}`}
+                  >
+                    <Icon size={12} /> {t.label}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="text-xs text-slate-400 mt-1">
+              {ownerType === "employee" ? "Assigned to a person — laptops, phones, individually-issued gear." : "Shared equipment (printers, dashboard monitors, pen drives) that belongs to a place or team, not one person."}
+            </div>
           </div>
+
+          {ownerType === "employee" && (
+            <div>
+              <label className="text-xs text-slate-500 block mb-1">Select employee</label>
+              <select required value={selectedOwnerId} onChange={(e) => setSelectedOwnerId(e.target.value)} className="w-full border border-slate-200 rounded-md px-3 py-2 text-sm">
+                <option value="">Select…</option>
+                {employees.map((e) => <option key={e.id} value={e.id}>{e.name} — {e.company}</option>)}
+              </select>
+            </div>
+          )}
+          {ownerType === "department" && (
+            <div>
+              <label className="text-xs text-slate-500 block mb-1">Select department</label>
+              <select required value={selectedOwnerId} onChange={(e) => setSelectedOwnerId(e.target.value)} className="w-full border border-slate-200 rounded-md px-3 py-2 text-sm">
+                <option value="">Select…</option>
+                {departments.map((d) => <option key={d.id} value={d.id}>{d.name}{d.is_shared ? " (shared across companies)" : ""}</option>)}
+              </select>
+            </div>
+          )}
+          {ownerType === "location" && (
+            <div>
+              <label className="text-xs text-slate-500 block mb-1">Select location</label>
+              <select required value={selectedOwnerId} onChange={(e) => setSelectedOwnerId(e.target.value)} className="w-full border border-slate-200 rounded-md px-3 py-2 text-sm">
+                <option value="">Select…</option>
+                {locations.map((l) => <option key={l.id} value={l.id}>{l.name} — {l.companyName}</option>)}
+              </select>
+            </div>
+          )}
+
           <div>
             <label className="text-xs text-slate-500 block mb-1">Select asset (barcode-scan target)</label>
             <div className="flex items-center gap-2">
